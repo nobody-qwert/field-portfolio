@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadaster Parcel 12511</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18202a;
+      --muted: #617080;
+      --line: #d4dbe3;
+      --parcel: #111827;
+      --point: #f7f9fc;
+      --point-stroke: #0f172a;
+      --accent: #0f766e;
+      --accent-soft: #d9f3ee;
+      --surface: #ffffff;
+      --page: #eef2f6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    main {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .stat {
+      display: grid;
+      gap: 3px;
+      min-width: 132px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat strong {
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      min-height: 0;
+    }
+
+    .map-wrap {
+      position: relative;
+      min-height: 0;
+      padding: 16px;
+    }
+
+    svg {
+      width: 100%;
+      height: calc(100vh - 95px);
+      min-height: 520px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      box-shadow: 0 14px 34px rgb(15 23 42 / 0.08);
+    }
+
+    .grid-line {
+      stroke: #e6ebf0;
+      stroke-width: 0.4;
+    }
+
+    .parcel-fill {
+      fill: rgb(15 118 110 / 0.08);
+      stroke: var(--parcel);
+      stroke-width: 2.2;
+      stroke-linejoin: round;
+    }
+
+    .point {
+      fill: var(--point);
+      stroke: var(--point-stroke);
+      stroke-width: 1.1;
+      cursor: pointer;
+    }
+
+    .point:hover,
+    .point:focus {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+      stroke-width: 2;
+      outline: none;
+    }
+
+    .label {
+      fill: var(--ink);
+      font-size: 7px;
+      font-weight: 700;
+      paint-order: stroke;
+      pointer-events: none;
+      stroke: #fff;
+      stroke-linejoin: round;
+      stroke-width: 2.4px;
+    }
+
+    .centroid-label {
+      fill: rgb(24 32 42 / 0.18);
+      font-size: 15px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    aside {
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .panel {
+      padding: 16px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    th,
+    td {
+      padding: 6px 5px;
+      border-bottom: 1px solid #edf1f5;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--muted);
+      background: var(--surface);
+      font-weight: 700;
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 20;
+      display: none;
+      min-width: 176px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: var(--surface);
+      box-shadow: 0 12px 24px rgb(15 23 42 / 0.16);
+      font-size: 12px;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+
+    .tooltip strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      svg {
+        height: 62vh;
+        min-height: 420px;
+      }
+
+      .stats {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Parcel 12511 Cadaster Geometry</h1>
+      <div class="stats" aria-live="polite">
+        <div class="stat">
+          <span>Area</span>
+          <strong id="areaValue">-</strong>
+        </div>
+        <div class="stat">
+          <span>Perimeter</span>
+          <strong id="perimeterValue">-</strong>
+        </div>
+        <div class="stat">
+          <span>Points</span>
+          <strong id="pointCount">-</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="map-wrap" aria-label="Cadaster parcel map">
+        <svg id="map" role="img" aria-labelledby="mapTitle mapDesc">
+          <title id="mapTitle">Parcel 12511 polygon with 40 cadaster points</title>
+          <desc id="mapDesc">A closed polygon drawn from Stereo 70 projected coordinates. Hover a point to see coordinates.</desc>
+        </svg>
+        <div id="tooltip" class="tooltip"></div>
+      </section>
+
+      <aside>
+        <div class="panel">
+          <h2>Point Coordinates</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Point</th>
+                <th>X</th>
+                <th>Y</th>
+              </tr>
+            </thead>
+            <tbody id="pointsTable"></tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const points = [
+      { id: 1, x: 471485.902, y: 556443.344 },
+      { id: 2, x: 471473.137, y: 556355.069 },
+      { id: 3, x: 471509.293, y: 556347.704 },
+      { id: 4, x: 471528.543, y: 556344.055 },
+      { id: 5, x: 471536.354, y: 556342.945 },
+      { id: 6, x: 471544.293, y: 556341.878 },
+      { id: 7, x: 471552.958, y: 556342.049 },
+      { id: 8, x: 471563.543, y: 556343.073 },
+      { id: 9, x: 471573.107, y: 556344.208 },
+      { id: 10, x: 471575.601, y: 556345.570 },
+      { id: 11, x: 471577.778, y: 556348.088 },
+      { id: 12, x: 471578.973, y: 556351.332 },
+      { id: 13, x: 471579.357, y: 556356.198 },
+      { id: 14, x: 471579.272, y: 556360.381 },
+      { id: 15, x: 471579.485, y: 556365.588 },
+      { id: 16, x: 471579.827, y: 556370.070 },
+      { id: 17, x: 471580.552, y: 556373.655 },
+      { id: 18, x: 471581.620, y: 556377.070 },
+      { id: 19, x: 471583.028, y: 556379.503 },
+      { id: 20, x: 471585.077, y: 556382.107 },
+      { id: 21, x: 471587.296, y: 556384.113 },
+      { id: 22, x: 471589.281, y: 556385.223 },
+      { id: 23, x: 471590.924, y: 556385.799 },
+      { id: 24, x: 471592.717, y: 556385.735 },
+      { id: 25, x: 471594.809, y: 556385.180 },
+      { id: 26, x: 471596.644, y: 556384.027 },
+      { id: 27, x: 471598.821, y: 556383.174 },
+      { id: 28, x: 471600.955, y: 556382.918 },
+      { id: 29, x: 471603.548, y: 556383.024 },
+      { id: 30, x: 471633.169, y: 556389.473 },
+      { id: 31, x: 471693.620, y: 556404.643 },
+      { id: 32, x: 471694.143, y: 556409.356 },
+      { id: 33, x: 471694.266, y: 556410.465 },
+      { id: 34, x: 471671.382, y: 556410.918 },
+      { id: 35, x: 471649.913, y: 556412.796 },
+      { id: 36, x: 471629.254, y: 556415.442 },
+      { id: 37, x: 471596.473, y: 556421.418 },
+      { id: 38, x: 471556.479, y: 556429.015 },
+      { id: 39, x: 471527.753, y: 556434.394 },
+      { id: 40, x: 471506.113, y: 556438.363 }
+    ];
+
+    const svg = document.getElementById("map");
+    const tooltip = document.getElementById("tooltip");
+    const tableBody = document.getElementById("pointsTable");
+    const width = 980;
+    const height = 620;
+    const pad = 54;
+    const minX = Math.min(...points.map((point) => point.x));
+    const maxX = Math.max(...points.map((point) => point.x));
+    const minY = Math.min(...points.map((point) => point.y));
+    const maxY = Math.max(...points.map((point) => point.y));
+    const dataWidth = maxX - minX;
+    const dataHeight = maxY - minY;
+    const scale = Math.min((width - pad * 2) / dataWidth, (height - pad * 2) / dataHeight);
+    const plotWidth = dataWidth * scale;
+    const plotHeight = dataHeight * scale;
+    const offsetX = (width - plotWidth) / 2;
+    const offsetY = (height - plotHeight) / 2;
+    const ns = "http://www.w3.org/2000/svg";
+
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    function sx(x) {
+      return offsetX + (x - minX) * scale;
+    }
+
+    function sy(y) {
+      return offsetY + (maxY - y) * scale;
+    }
+
+    function formatNumber(value, digits = 3) {
+      return new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value);
+    }
+
+    function formatCadasterCoord(value) {
+      return new Intl.NumberFormat("ro-RO", {
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3
+      }).format(value);
+    }
+
+    function areaSquareMeters(vertices) {
+      let twiceArea = 0;
+      vertices.forEach((point, index) => {
+        const next = vertices[(index + 1) % vertices.length];
+        twiceArea += point.x * next.y - next.x * point.y;
+      });
+      return Math.abs(twiceArea) / 2;
+    }
+
+    function perimeterMeters(vertices) {
+      return vertices.reduce((total, point, index) => {
+        const next = vertices[(index + 1) % vertices.length];
+        return total + Math.hypot(next.x - point.x, next.y - point.y);
+      }, 0);
+    }
+
+    function centroid(vertices) {
+      let signedArea = 0;
+      let cx = 0;
+      let cy = 0;
+      vertices.forEach((point, index) => {
+        const next = vertices[(index + 1) % vertices.length];
+        const cross = point.x * next.y - next.x * point.y;
+        signedArea += cross;
+        cx += (point.x + next.x) * cross;
+        cy += (point.y + next.y) * cross;
+      });
+      signedArea *= 0.5;
+      return {
+        x: cx / (6 * signedArea),
+        y: cy / (6 * signedArea)
+      };
+    }
+
+    function addElement(tag, attrs, parent = svg) {
+      const element = document.createElementNS(ns, tag);
+      Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, value));
+      parent.appendChild(element);
+      return element;
+    }
+
+    function addGrid() {
+      const step = 25;
+      const startX = Math.floor(minX / step) * step;
+      const endX = Math.ceil(maxX / step) * step;
+      const startY = Math.floor(minY / step) * step;
+      const endY = Math.ceil(maxY / step) * step;
+
+      for (let x = startX; x <= endX; x += step) {
+        addElement("line", {
+          class: "grid-line",
+          x1: sx(x),
+          y1: sy(startY),
+          x2: sx(x),
+          y2: sy(endY)
+        });
+      }
+
+      for (let y = startY; y <= endY; y += step) {
+        addElement("line", {
+          class: "grid-line",
+          x1: sx(startX),
+          y1: sy(y),
+          x2: sx(endX),
+          y2: sy(y)
+        });
+      }
+    }
+
+    function showTooltip(event, point) {
+      tooltip.innerHTML = `
+        <strong>Point ${point.id}</strong>
+        X: ${formatCadasterCoord(point.x)}<br>
+        Y: ${formatCadasterCoord(point.y)}
+      `;
+      tooltip.style.display = "block";
+      moveTooltip(event);
+    }
+
+    function showTooltipAt(left, top, point) {
+      tooltip.innerHTML = `
+        <strong>Point ${point.id}</strong>
+        X: ${formatCadasterCoord(point.x)}<br>
+        Y: ${formatCadasterCoord(point.y)}
+      `;
+      tooltip.style.display = "block";
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    }
+
+    function moveTooltip(event) {
+      const margin = 14;
+      const rect = tooltip.getBoundingClientRect();
+      let left = event.clientX + margin;
+      let top = event.clientY + margin;
+
+      if (left + rect.width > window.innerWidth - 8) {
+        left = event.clientX - rect.width - margin;
+      }
+
+      if (top + rect.height > window.innerHeight - 8) {
+        top = event.clientY - rect.height - margin;
+      }
+
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = "none";
+    }
+
+    function drawMap() {
+      addGrid();
+
+      addElement("polygon", {
+        class: "parcel-fill",
+        points: points.map((point) => `${sx(point.x)},${sy(point.y)}`).join(" ")
+      });
+
+      const center = centroid(points);
+      addElement("text", {
+        class: "centroid-label",
+        x: sx(center.x),
+        y: sy(center.y)
+      }).textContent = "12511";
+
+      points.forEach((point) => {
+        const group = addElement("g", {
+          tabindex: "0",
+          "aria-label": `Point ${point.id}, X ${point.x}, Y ${point.y}`
+        });
+        const x = sx(point.x);
+        const y = sy(point.y);
+
+        addElement("circle", {
+          class: "point",
+          cx: x,
+          cy: y,
+          r: 3.4
+        }, group);
+
+        const labelOffsetY = point.id >= 10 && point.id <= 19 ? -7 : -6;
+        addElement("text", {
+          class: "label",
+          x: x + 5,
+          y: y + labelOffsetY
+        }, group).textContent = point.id;
+
+        group.addEventListener("mouseenter", (event) => showTooltip(event, point));
+        group.addEventListener("mousemove", moveTooltip);
+        group.addEventListener("mouseleave", hideTooltip);
+        group.addEventListener("focus", () => {
+          const svgRect = svg.getBoundingClientRect();
+          const left = svgRect.left + (x / width) * svgRect.width + 12;
+          const top = svgRect.top + (y / height) * svgRect.height + 12;
+          showTooltipAt(left, top, point);
+        });
+        group.addEventListener("blur", hideTooltip);
+      });
+    }
+
+    function fillTable() {
+      const rows = points.map((point) => `
+        <tr>
+          <td>${point.id}</td>
+          <td>${formatCadasterCoord(point.x)}</td>
+          <td>${formatCadasterCoord(point.y)}</td>
+        </tr>
+      `);
+      tableBody.innerHTML = rows.join("");
+    }
+
+    document.getElementById("areaValue").textContent = `${formatNumber(areaSquareMeters(points))} m²`;
+    document.getElementById("perimeterValue").textContent = `${formatNumber(perimeterMeters(points))} m`;
+    document.getElementById("pointCount").textContent = String(points.length);
+
+    drawMap();
+    fillTable();
+  </script>
+</body>
+</html>
