@@ -53,12 +53,29 @@
       background: var(--surface);
     }
 
+    .title-tools {
+      display: flex;
+      align-items: center;
+      flex: 1 1 auto;
+      gap: 20px;
+      min-width: 0;
+    }
+
     h1 {
       margin: 0;
       font-size: 20px;
       line-height: 1.2;
       font-weight: 700;
       letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      min-width: 0;
     }
 
     .stats {
@@ -335,6 +352,23 @@
       font-size: 13px;
     }
 
+    .file-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .header-file-input {
+      width: 240px;
+      padding: 5px 7px;
+      font-size: 12px;
+    }
+
     .hint,
     .status {
       margin: 0;
@@ -348,6 +382,14 @@
       color: var(--accent);
     }
 
+    .import-status {
+      max-width: 280px;
+      min-height: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .setting-row {
       display: flex;
       align-items: center;
@@ -356,6 +398,12 @@
       color: var(--ink);
       font-size: 13px;
       font-weight: 700;
+    }
+
+    .header-setting {
+      justify-content: flex-start;
+      padding-left: 2px;
+      white-space: nowrap;
     }
 
     .switch {
@@ -535,6 +583,21 @@
         flex-direction: column;
       }
 
+      .title-tools {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .header-controls {
+        width: 100%;
+      }
+
+      .header-file-input {
+        width: min(240px, 100%);
+      }
+
       .layout {
         grid-template-columns: 1fr;
       }
@@ -558,7 +621,23 @@
 <body>
   <main>
     <header>
-      <h1>Cadaster Field Geometry</h1>
+      <div class="title-tools">
+        <h1>Cadaster Field Geometry</h1>
+        <div class="header-controls">
+          <label class="file-control">
+            <span>Import CSV</span>
+            <input class="file-input header-file-input" id="csvInput" type="file" accept=".csv,text/csv">
+          </label>
+          <span class="status import-status" id="importStatus" aria-live="polite"></span>
+          <label class="setting-row header-setting">
+            <span>Satellite view</span>
+            <span class="switch">
+              <input id="satelliteToggle" type="checkbox" role="switch" aria-checked="true" checked>
+              <span class="switch-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+      </div>
       <div class="stats" aria-live="polite">
         <div class="stat">
           <span>Area</span>
@@ -585,24 +664,6 @@
       </section>
 
       <aside>
-        <div class="panel">
-          <h2>Import Field CSV</h2>
-          <div class="import-row">
-            <input class="file-input" id="csvInput" type="file" accept=".csv,text/csv">
-            <p class="hint">CSV columns: Nr., x, y, IE. The IE value becomes the field ID.</p>
-            <p class="status" id="importStatus" aria-live="polite"></p>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>Map Background</h2>
-          <label class="setting-row">
-            <span>Satellite view</span>
-            <span class="switch">
-              <input id="satelliteToggle" type="checkbox" role="switch" aria-checked="true" checked>
-              <span class="switch-slider" aria-hidden="true"></span>
-            </span>
-          </label>
-        </div>
         <div class="panel">
           <h2>Visible Fields</h2>
           <div class="field-list" id="fieldList"></div>
