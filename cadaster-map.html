@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cadaster Parcel 12511</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQ4NJPaUu9ONlSNXQIFJx6T1xqmDkCk="
+    crossorigin=""
+  >
   <style>
     :root {
       color-scheme: light;
@@ -92,63 +98,209 @@
       position: relative;
       min-height: 0;
       padding: 16px;
+      overflow: hidden;
     }
 
-    svg {
+    #map {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
       width: 100%;
       height: calc(100vh - 95px);
       min-height: 520px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fbfcfe;
+      background: #d9e2ea;
       box-shadow: 0 14px 34px rgb(15 23 42 / 0.08);
     }
 
-    .grid-line {
-      stroke: #e6ebf0;
-      stroke-width: 0.4;
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
     }
 
-    .parcel-fill {
-      fill: rgb(15 118 110 / 0.08);
-      stroke: var(--parcel);
-      stroke-width: 2.2;
-      stroke-linejoin: round;
+    .leaflet-container {
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      outline-offset: 1px;
+      touch-action: pan-x pan-y;
     }
 
-    .point {
-      fill: var(--point);
-      stroke: var(--point-stroke);
-      stroke-width: 1.1;
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .leaflet-tile {
+      visibility: hidden;
+    }
+
+    .leaflet-tile-loaded {
+      visibility: inherit;
+    }
+
+    .leaflet-pane {
+      z-index: 400;
+    }
+
+    .leaflet-tile-pane {
+      z-index: 200;
+    }
+
+    .leaflet-overlay-pane {
+      z-index: 400;
+    }
+
+    .leaflet-shadow-pane {
+      z-index: 500;
+    }
+
+    .leaflet-marker-pane {
+      z-index: 600;
+    }
+
+    .leaflet-tooltip-pane {
+      z-index: 650;
+    }
+
+    .leaflet-popup-pane {
+      z-index: 700;
+    }
+
+    .leaflet-map-pane svg {
+      z-index: 200;
+    }
+
+    .leaflet-map-pane canvas {
+      z-index: 100;
+    }
+
+    .leaflet-control {
+      position: relative;
+      z-index: 800;
+      clear: both;
+      pointer-events: auto;
+    }
+
+    .leaflet-top,
+    .leaflet-bottom {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .leaflet-top {
+      top: 0;
+    }
+
+    .leaflet-right {
+      right: 0;
+    }
+
+    .leaflet-bottom {
+      bottom: 0;
+    }
+
+    .leaflet-left {
+      left: 0;
+    }
+
+    .leaflet-left .leaflet-control {
+      float: left;
+      margin-left: 10px;
+    }
+
+    .leaflet-right .leaflet-control {
+      float: right;
+      margin-right: 10px;
+    }
+
+    .leaflet-top .leaflet-control {
+      margin-top: 10px;
+    }
+
+    .leaflet-bottom .leaflet-control {
+      margin-bottom: 10px;
+    }
+
+    .leaflet-control-zoom a {
+      display: block;
+      width: 30px;
+      height: 30px;
+      border-bottom: 1px solid #c8d0d8;
+      color: #111827;
+      background: #fff;
+      font: bold 18px/30px Arial, Helvetica, sans-serif;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .leaflet-control-zoom a:first-child {
+      border-radius: 4px 4px 0 0;
+    }
+
+    .leaflet-control-zoom a:last-child {
+      border-bottom: 0;
+      border-radius: 0 0 4px 4px;
+    }
+
+    .leaflet-interactive {
       cursor: pointer;
     }
 
-    .point:hover,
-    .point:focus {
-      fill: var(--accent-soft);
-      stroke: var(--accent);
-      stroke-width: 2;
-      outline: none;
+    .leaflet-tooltip {
+      position: absolute;
+      white-space: nowrap;
+      pointer-events: none;
     }
 
-    .label {
-      fill: var(--ink);
-      font-size: 7px;
+    .point-label {
+      color: #0f172a;
+      font-size: 12px;
       font-weight: 700;
-      paint-order: stroke;
-      pointer-events: none;
-      stroke: #fff;
-      stroke-linejoin: round;
-      stroke-width: 2.4px;
+      line-height: 18px;
+      text-align: center;
+      text-shadow:
+        -1px -1px 0 #fff,
+        1px -1px 0 #fff,
+        -1px 1px 0 #fff,
+        1px 1px 0 #fff;
     }
 
-    .centroid-label {
-      fill: rgb(24 32 42 / 0.18);
-      font-size: 15px;
+    .parcel-name {
+      color: rgb(255 255 255 / 0.92);
+      font-size: 18px;
       font-weight: 700;
-      text-anchor: middle;
-      dominant-baseline: middle;
-      pointer-events: none;
+      text-align: center;
+      text-shadow: 0 2px 5px rgb(0 0 0 / 0.85);
+    }
+
+    .leaflet-tooltip.point-tooltip {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: 0 12px 24px rgb(15 23 42 / 0.16);
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.4;
+      padding: 8px 10px;
+    }
+
+    .leaflet-tooltip.point-tooltip strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
     }
 
     aside {
@@ -233,7 +385,7 @@
         border-top: 1px solid var(--line);
       }
 
-      svg {
+      #map {
         height: 62vh;
         min-height: 420px;
       }
@@ -266,11 +418,7 @@
 
     <div class="layout">
       <section class="map-wrap" aria-label="Cadaster parcel map">
-        <svg id="map" role="img" aria-labelledby="mapTitle mapDesc">
-          <title id="mapTitle">Parcel 12511 polygon with 40 cadaster points</title>
-          <desc id="mapDesc">A closed polygon drawn from Stereo 70 projected coordinates. Hover a point to see coordinates.</desc>
-        </svg>
-        <div id="tooltip" class="tooltip"></div>
+        <div id="map" role="application" aria-label="Satellite map with parcel 12511 overlay"></div>
       </section>
 
       <aside>
@@ -291,6 +439,12 @@
     </div>
   </main>
 
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/proj4@2.12.1/dist/proj4.js"></script>
   <script>
     const points = [
       { id: 1, x: 471485.902, y: 556443.344 },
@@ -335,34 +489,7 @@
       { id: 40, x: 471506.113, y: 556438.363 }
     ];
 
-    const svg = document.getElementById("map");
-    const tooltip = document.getElementById("tooltip");
     const tableBody = document.getElementById("pointsTable");
-    const width = 980;
-    const height = 620;
-    const pad = 54;
-    const minX = Math.min(...points.map((point) => point.x));
-    const maxX = Math.max(...points.map((point) => point.x));
-    const minY = Math.min(...points.map((point) => point.y));
-    const maxY = Math.max(...points.map((point) => point.y));
-    const dataWidth = maxX - minX;
-    const dataHeight = maxY - minY;
-    const scale = Math.min((width - pad * 2) / dataWidth, (height - pad * 2) / dataHeight);
-    const plotWidth = dataWidth * scale;
-    const plotHeight = dataHeight * scale;
-    const offsetX = (width - plotWidth) / 2;
-    const offsetY = (height - plotHeight) / 2;
-    const ns = "http://www.w3.org/2000/svg";
-
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-
-    function sx(x) {
-      return offsetX + (x - minX) * scale;
-    }
-
-    function sy(y) {
-      return offsetY + (maxY - y) * scale;
-    }
 
     function formatNumber(value, digits = 3) {
       return new Intl.NumberFormat("en-US", {
@@ -412,131 +539,94 @@
       };
     }
 
-    function addElement(tag, attrs, parent = svg) {
-      const element = document.createElementNS(ns, tag);
-      Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, value));
-      parent.appendChild(element);
-      return element;
-    }
-
-    function addGrid() {
-      const step = 25;
-      const startX = Math.floor(minX / step) * step;
-      const endX = Math.ceil(maxX / step) * step;
-      const startY = Math.floor(minY / step) * step;
-      const endY = Math.ceil(maxY / step) * step;
-
-      for (let x = startX; x <= endX; x += step) {
-        addElement("line", {
-          class: "grid-line",
-          x1: sx(x),
-          y1: sy(startY),
-          x2: sx(x),
-          y2: sy(endY)
-        });
-      }
-
-      for (let y = startY; y <= endY; y += step) {
-        addElement("line", {
-          class: "grid-line",
-          x1: sx(startX),
-          y1: sy(y),
-          x2: sx(endX),
-          y2: sy(y)
-        });
-      }
-    }
-
-    function showTooltip(event, point) {
-      tooltip.innerHTML = `
-        <strong>Point ${point.id}</strong>
-        X: ${formatCadasterCoord(point.x)}<br>
-        Y: ${formatCadasterCoord(point.y)}
-      `;
-      tooltip.style.display = "block";
-      moveTooltip(event);
-    }
-
-    function showTooltipAt(left, top, point) {
-      tooltip.innerHTML = `
-        <strong>Point ${point.id}</strong>
-        X: ${formatCadasterCoord(point.x)}<br>
-        Y: ${formatCadasterCoord(point.y)}
-      `;
-      tooltip.style.display = "block";
-      tooltip.style.left = `${left}px`;
-      tooltip.style.top = `${top}px`;
-    }
-
-    function moveTooltip(event) {
-      const margin = 14;
-      const rect = tooltip.getBoundingClientRect();
-      let left = event.clientX + margin;
-      let top = event.clientY + margin;
-
-      if (left + rect.width > window.innerWidth - 8) {
-        left = event.clientX - rect.width - margin;
-      }
-
-      if (top + rect.height > window.innerHeight - 8) {
-        top = event.clientY - rect.height - margin;
-      }
-
-      tooltip.style.left = `${left}px`;
-      tooltip.style.top = `${top}px`;
-    }
-
-    function hideTooltip() {
-      tooltip.style.display = "none";
-    }
-
     function drawMap() {
-      addGrid();
+      if (!window.L || !window.proj4) {
+        document.getElementById("map").textContent = "The satellite map needs Leaflet and Proj4 to load from the internet.";
+        return;
+      }
 
-      addElement("polygon", {
-        class: "parcel-fill",
-        points: points.map((point) => `${sx(point.x)},${sy(point.y)}`).join(" ")
+      proj4.defs(
+        "EPSG:3844",
+        "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,0.309,-0.325,-0.497,5.69 +units=m +no_defs +type=crs"
+      );
+
+      const geoPoints = points.map((point) => {
+        const [lng, lat] = proj4("EPSG:3844", "EPSG:4326", [point.x, point.y]);
+        return { ...point, lat, lng };
       });
 
+      const map = L.map("map", {
+        preferCanvas: true,
+        zoomControl: true
+      });
+
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 20,
+          attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+        }
+      ).addTo(map);
+
+      const polygonLatLngs = geoPoints.map((point) => [point.lat, point.lng]);
+      const parcelLayer = L.polygon(polygonLatLngs, {
+        color: "#0b1220",
+        fillColor: "#0f766e",
+        fillOpacity: 0.22,
+        opacity: 0.95,
+        weight: 3
+      }).addTo(map);
+
       const center = centroid(points);
-      addElement("text", {
-        class: "centroid-label",
-        x: sx(center.x),
-        y: sy(center.y)
-      }).textContent = "12511";
+      const [centerLng, centerLat] = proj4("EPSG:3844", "EPSG:4326", [center.x, center.y]);
+      L.marker([centerLat, centerLng], {
+        interactive: false,
+        icon: L.divIcon({
+          className: "parcel-name",
+          html: "12511",
+          iconSize: [70, 24],
+          iconAnchor: [35, 12]
+        })
+      }).addTo(map);
 
-      points.forEach((point) => {
-        const group = addElement("g", {
-          tabindex: "0",
-          "aria-label": `Point ${point.id}, X ${point.x}, Y ${point.y}`
-        });
-        const x = sx(point.x);
-        const y = sy(point.y);
+      geoPoints.forEach((point) => {
+        const tooltipHtml = `
+          <strong>Point ${point.id}</strong>
+          X: ${formatCadasterCoord(point.x)}<br>
+          Y: ${formatCadasterCoord(point.y)}<br>
+          Lat: ${point.lat.toFixed(7)}<br>
+          Lng: ${point.lng.toFixed(7)}
+        `;
 
-        addElement("circle", {
-          class: "point",
-          cx: x,
-          cy: y,
-          r: 3.4
-        }, group);
+        L.circleMarker([point.lat, point.lng], {
+          radius: 5,
+          color: "#0f172a",
+          fillColor: "#ffffff",
+          fillOpacity: 0.95,
+          weight: 2
+        })
+          .bindTooltip(tooltipHtml, {
+            className: "point-tooltip",
+            direction: "top",
+            opacity: 1,
+            sticky: true
+          })
+          .addTo(map);
 
-        const labelOffsetY = point.id >= 10 && point.id <= 19 ? -7 : -6;
-        addElement("text", {
-          class: "label",
-          x: x + 5,
-          y: y + labelOffsetY
-        }, group).textContent = point.id;
+        L.marker([point.lat, point.lng], {
+          interactive: false,
+          icon: L.divIcon({
+            className: "point-label",
+            html: point.id,
+            iconSize: [28, 18],
+            iconAnchor: [-7, 14]
+          })
+        }).addTo(map);
+      });
 
-        group.addEventListener("mouseenter", (event) => showTooltip(event, point));
-        group.addEventListener("mousemove", moveTooltip);
-        group.addEventListener("mouseleave", hideTooltip);
-        group.addEventListener("focus", () => {
-          const svgRect = svg.getBoundingClientRect();
-          const left = svgRect.left + (x / width) * svgRect.width + 12;
-          const top = svgRect.top + (y / height) * svgRect.height + 12;
-          showTooltipAt(left, top, point);
-        });
-        group.addEventListener("blur", hideTooltip);
+      map.fitBounds(parcelLayer.getBounds(), {
+        padding: [38, 38],
+        maxZoom: 19
       });
     }
 
