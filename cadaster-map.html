@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cadaster Parcel 12511</title>
+  <title>Cadaster Fields Map</title>
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -90,7 +90,7 @@
 
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 310px;
+      grid-template-columns: minmax(0, 1fr) 360px;
       min-height: 0;
     }
 
@@ -311,12 +311,171 @@
 
     .panel {
       padding: 16px;
+      border-bottom: 1px solid var(--line);
     }
 
     h2 {
       margin: 0 0 10px;
       font-size: 15px;
       line-height: 1.25;
+    }
+
+    .import-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .file-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .hint,
+    .status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .status {
+      min-height: 18px;
+      color: var(--accent);
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #cbd5e1;
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .switch-slider::before {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgb(15 23 42 / 0.2);
+      content: "";
+      transition: transform 160ms ease;
+    }
+
+    .switch input:checked + .switch-slider {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .switch input:checked + .switch-slider::before {
+      transform: translateX(18px);
+    }
+
+    .switch input:focus-visible + .switch-slider {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .field-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-item {
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .field-item input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .field-swatch {
+      width: 10px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--field-color);
+    }
+
+    .field-meta {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+      cursor: pointer;
+    }
+
+    .field-name {
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .field-detail {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .field-remove {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: #fff;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .field-remove:hover {
+      color: #b91c1c;
+      border-color: #fecaca;
+      background: #fff5f5;
     }
 
     table {
@@ -399,7 +558,7 @@
 <body>
   <main>
     <header>
-      <h1>Parcel 12511 Cadaster Geometry</h1>
+      <h1>Cadaster Field Geometry</h1>
       <div class="stats" aria-live="polite">
         <div class="stat">
           <span>Area</span>
@@ -413,20 +572,47 @@
           <span>Points</span>
           <strong id="pointCount">-</strong>
         </div>
+        <div class="stat">
+          <span>Visible Fields</span>
+          <strong id="fieldCount">-</strong>
+        </div>
       </div>
     </header>
 
     <div class="layout">
       <section class="map-wrap" aria-label="Cadaster parcel map">
-        <div id="map" role="application" aria-label="Satellite map with parcel 12511 overlay"></div>
+        <div id="map" role="application" aria-label="Satellite map with cadaster field overlays"></div>
       </section>
 
       <aside>
+        <div class="panel">
+          <h2>Import Field CSV</h2>
+          <div class="import-row">
+            <input class="file-input" id="csvInput" type="file" accept=".csv,text/csv">
+            <p class="hint">CSV columns: Nr., x, y, IE. The IE value becomes the field ID.</p>
+            <p class="status" id="importStatus" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Map Background</h2>
+          <label class="setting-row">
+            <span>Satellite view</span>
+            <span class="switch">
+              <input id="satelliteToggle" type="checkbox" role="switch" aria-checked="true" checked>
+              <span class="switch-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+        <div class="panel">
+          <h2>Visible Fields</h2>
+          <div class="field-list" id="fieldList"></div>
+        </div>
         <div class="panel">
           <h2>Point Coordinates</h2>
           <table>
             <thead>
               <tr>
+                <th>Field</th>
                 <th>Point</th>
                 <th>X</th>
                 <th>Y</th>
@@ -446,7 +632,7 @@
   ></script>
   <script src="https://unpkg.com/proj4@2.12.1/dist/proj4.js"></script>
   <script>
-    const points = [
+    const initialPoints = [
       { id: 1, x: 471485.902, y: 556443.344 },
       { id: 2, x: 471473.137, y: 556355.069 },
       { id: 3, x: 471509.293, y: 556347.704 },
@@ -489,7 +675,17 @@
       { id: 40, x: 471506.113, y: 556438.363 }
     ];
 
+    const fieldColors = ["#0f766e", "#b91c1c", "#1d4ed8", "#a16207", "#7c3aed", "#15803d", "#be185d", "#0369a1"];
+    const fields = [];
+    let map = null;
+    let satelliteLayer = null;
+    let fieldLayerRoot = null;
+
     const tableBody = document.getElementById("pointsTable");
+    const fieldList = document.getElementById("fieldList");
+    const importStatus = document.getElementById("importStatus");
+    const csvInput = document.getElementById("csvInput");
+    const satelliteToggle = document.getElementById("satelliteToggle");
 
     function formatNumber(value, digits = 3) {
       return new Intl.NumberFormat("en-US", {
@@ -503,6 +699,16 @@
         minimumFractionDigits: 3,
         maximumFractionDigits: 3
       }).format(value);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
     }
 
     function areaSquareMeters(vertices) {
@@ -539,10 +745,44 @@
       };
     }
 
-    function drawMap() {
+    function convertPoint(point) {
+      const [lng, lat] = proj4("EPSG:3844", "EPSG:4326", [point.x, point.y]);
+      return { ...point, lat, lng };
+    }
+
+    function visibleFields() {
+      return fields.filter((field) => field.visible);
+    }
+
+    function uniqueFieldId(baseId) {
+      const cleanBase = String(baseId || "field").trim() || "field";
+      let id = cleanBase;
+      let suffix = 2;
+
+      while (fields.some((field) => field.id === id)) {
+        id = `${cleanBase}-${suffix}`;
+        suffix += 1;
+      }
+
+      return id;
+    }
+
+    function addField(fieldId, vertices, options = {}) {
+      const id = uniqueFieldId(fieldId);
+      fields.push({
+        id,
+        name: options.name || `Field ${id}`,
+        color: fieldColors[fields.length % fieldColors.length],
+        points: vertices,
+        visible: options.visible ?? true,
+        removable: options.removable ?? true
+      });
+    }
+
+    function setupMap() {
       if (!window.L || !window.proj4) {
         document.getElementById("map").textContent = "The satellite map needs Leaflet and Proj4 to load from the internet.";
-        return;
+        return false;
       }
 
       proj4.defs(
@@ -550,48 +790,72 @@
         "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,0.309,-0.325,-0.497,5.69 +units=m +no_defs +type=crs"
       );
 
-      const geoPoints = points.map((point) => {
-        const [lng, lat] = proj4("EPSG:3844", "EPSG:4326", [point.x, point.y]);
-        return { ...point, lat, lng };
-      });
-
-      const map = L.map("map", {
+      map = L.map("map", {
         preferCanvas: true,
         zoomControl: true
       });
 
-      L.tileLayer(
+      satelliteLayer = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
           maxZoom: 20,
           attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
         }
-      ).addTo(map);
+      );
+      setSatelliteVisible(satelliteToggle.checked);
 
+      fieldLayerRoot = L.layerGroup().addTo(map);
+      return true;
+    }
+
+    function setSatelliteVisible(visible) {
+      if (!map || !satelliteLayer) {
+        return;
+      }
+
+      satelliteToggle.setAttribute("aria-checked", String(visible));
+
+      if (visible) {
+        if (!map.hasLayer(satelliteLayer)) {
+          satelliteLayer.addTo(map);
+        }
+        return;
+      }
+
+      if (map.hasLayer(satelliteLayer)) {
+        map.removeLayer(satelliteLayer);
+      }
+    }
+
+    function createFieldLayer(field) {
+      const geoPoints = field.points.map(convertPoint);
+      const layer = L.layerGroup();
       const polygonLatLngs = geoPoints.map((point) => [point.lat, point.lng]);
       const parcelLayer = L.polygon(polygonLatLngs, {
         color: "#0b1220",
-        fillColor: "#0f766e",
+        fillColor: field.color,
         fillOpacity: 0.22,
         opacity: 0.95,
         weight: 3
-      }).addTo(map);
+      }).addTo(layer);
 
-      const center = centroid(points);
-      const [centerLng, centerLat] = proj4("EPSG:3844", "EPSG:4326", [center.x, center.y]);
-      L.marker([centerLat, centerLng], {
-        interactive: false,
-        icon: L.divIcon({
-          className: "parcel-name",
-          html: "12511",
-          iconSize: [70, 24],
-          iconAnchor: [35, 12]
-        })
-      }).addTo(map);
+      const center = centroid(field.points);
+      if (Number.isFinite(center.x) && Number.isFinite(center.y)) {
+        const [centerLng, centerLat] = proj4("EPSG:3844", "EPSG:4326", [center.x, center.y]);
+        L.marker([centerLat, centerLng], {
+          interactive: false,
+          icon: L.divIcon({
+            className: "parcel-name",
+            html: escapeHtml(field.id),
+            iconSize: [90, 24],
+            iconAnchor: [45, 12]
+          })
+        }).addTo(layer);
+      }
 
       geoPoints.forEach((point) => {
         const tooltipHtml = `
-          <strong>Point ${point.id}</strong>
+          <strong>Field ${escapeHtml(field.id)}, Point ${escapeHtml(point.id)}</strong>
           X: ${formatCadasterCoord(point.x)}<br>
           Y: ${formatCadasterCoord(point.y)}<br>
           Lat: ${point.lat.toFixed(7)}<br>
@@ -611,42 +875,217 @@
             opacity: 1,
             sticky: true
           })
-          .addTo(map);
+          .addTo(layer);
 
         L.marker([point.lat, point.lng], {
           interactive: false,
           icon: L.divIcon({
             className: "point-label",
-            html: point.id,
+            html: escapeHtml(point.id),
             iconSize: [28, 18],
             iconAnchor: [-7, 14]
           })
-        }).addTo(map);
+        }).addTo(layer);
       });
 
-      map.fitBounds(parcelLayer.getBounds(), {
-        padding: [38, 38],
-        maxZoom: 19
+      return { group: layer, bounds: parcelLayer.getBounds() };
+    }
+
+    function redrawMap() {
+      if (!map || !fieldLayerRoot) {
+        return;
+      }
+
+      fieldLayerRoot.clearLayers();
+      const bounds = L.latLngBounds();
+
+      visibleFields().forEach((field) => {
+        const layer = createFieldLayer(field);
+        layer.group.addTo(fieldLayerRoot);
+        bounds.extend(layer.bounds);
       });
+
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          padding: [38, 38],
+          maxZoom: 19
+        });
+      }
+    }
+
+    function renderFieldList() {
+      fieldList.innerHTML = fields.map((field, index) => `
+        <div class="field-item" style="--field-color: ${field.color}">
+          <input id="fieldToggle${index}" type="checkbox" data-field-index="${index}" ${field.visible ? "checked" : ""}>
+          <span class="field-swatch" aria-hidden="true"></span>
+          <label class="field-meta" for="fieldToggle${index}">
+            <span class="field-name">${escapeHtml(field.name)}</span>
+            <span class="field-detail">${field.points.length} points · ${formatNumber(areaSquareMeters(field.points), 2)} m²</span>
+          </label>
+          ${field.removable ? `<button class="field-remove" type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(field.name)}">×</button>` : ""}
+        </div>
+      `).join("");
     }
 
     function fillTable() {
-      const rows = points.map((point) => `
+      const rows = visibleFields().flatMap((field) => field.points.map((point) => `
         <tr>
-          <td>${point.id}</td>
+          <td>${escapeHtml(field.id)}</td>
+          <td>${escapeHtml(point.id)}</td>
           <td>${formatCadasterCoord(point.x)}</td>
           <td>${formatCadasterCoord(point.y)}</td>
         </tr>
-      `);
+      `));
       tableBody.innerHTML = rows.join("");
     }
 
-    document.getElementById("areaValue").textContent = `${formatNumber(areaSquareMeters(points))} m²`;
-    document.getElementById("perimeterValue").textContent = `${formatNumber(perimeterMeters(points))} m`;
-    document.getElementById("pointCount").textContent = String(points.length);
+    function updateStats() {
+      const selectedFields = visibleFields();
+      const area = selectedFields.reduce((total, field) => total + areaSquareMeters(field.points), 0);
+      const perimeter = selectedFields.reduce((total, field) => total + perimeterMeters(field.points), 0);
+      const pointCount = selectedFields.reduce((total, field) => total + field.points.length, 0);
 
-    drawMap();
-    fillTable();
+      document.getElementById("areaValue").textContent = `${formatNumber(area)} m²`;
+      document.getElementById("perimeterValue").textContent = `${formatNumber(perimeter)} m`;
+      document.getElementById("pointCount").textContent = String(pointCount);
+      document.getElementById("fieldCount").textContent = String(selectedFields.length);
+    }
+
+    function render() {
+      renderFieldList();
+      redrawMap();
+      fillTable();
+      updateStats();
+    }
+
+    function parseCsvLine(line) {
+      const cells = [];
+      let value = "";
+      let quoted = false;
+
+      for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        const next = line[index + 1];
+
+        if (char === "\"" && quoted && next === "\"") {
+          value += char;
+          index += 1;
+        } else if (char === "\"") {
+          quoted = !quoted;
+        } else if (char === "," && !quoted) {
+          cells.push(value.trim());
+          value = "";
+        } else {
+          value += char;
+        }
+      }
+
+      cells.push(value.trim());
+      return cells;
+    }
+
+    function parseCsvFields(text) {
+      const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        throw new Error("The CSV does not contain any coordinate rows.");
+      }
+
+      const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase().replace(/\.$/, ""));
+      const nrIndex = headers.indexOf("nr");
+      const xIndex = headers.indexOf("x");
+      const yIndex = headers.indexOf("y");
+      const ieIndex = headers.indexOf("ie");
+
+      if ([nrIndex, xIndex, yIndex, ieIndex].includes(-1)) {
+        throw new Error("Expected CSV headers: Nr., x, y, IE.");
+      }
+
+      const byField = new Map();
+
+      lines.slice(1).forEach((line, rowIndex) => {
+        const cells = parseCsvLine(line);
+        const fieldId = cells[ieIndex];
+        const pointId = cells[nrIndex];
+        const x = Number(cells[xIndex]);
+        const y = Number(cells[yIndex]);
+
+        if (!fieldId || !Number.isFinite(x) || !Number.isFinite(y)) {
+          throw new Error(`Invalid coordinate data on row ${rowIndex + 2}.`);
+        }
+
+        if (!byField.has(fieldId)) {
+          byField.set(fieldId, []);
+        }
+
+        byField.get(fieldId).push({
+          id: pointId || byField.get(fieldId).length + 1,
+          x,
+          y
+        });
+      });
+
+      return [...byField.entries()].map(([id, vertices]) => {
+        if (vertices.length < 3) {
+          throw new Error(`Field ${id} needs at least 3 points.`);
+        }
+
+        return { id, points: vertices };
+      });
+    }
+
+    fieldList.addEventListener("change", (event) => {
+      const index = Number(event.target.dataset.fieldIndex);
+      if (!Number.isInteger(index)) {
+        return;
+      }
+
+      fields[index].visible = event.target.checked;
+      render();
+    });
+
+    fieldList.addEventListener("click", (event) => {
+      const index = Number(event.target.dataset.removeIndex);
+      if (!Number.isInteger(index)) {
+        return;
+      }
+
+      fields.splice(index, 1);
+      render();
+    });
+
+    csvInput.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      try {
+        const importedFields = parseCsvFields(await file.text());
+        importedFields.forEach((field) => addField(field.id, field.points));
+        importStatus.textContent = `Imported ${importedFields.length} field${importedFields.length === 1 ? "" : "s"} from ${file.name}.`;
+        csvInput.value = "";
+        render();
+      } catch (error) {
+        importStatus.textContent = error.message;
+      }
+    });
+
+    satelliteToggle.addEventListener("change", () => {
+      setSatelliteVisible(satelliteToggle.checked);
+    });
+
+    addField("12511", initialPoints, {
+      name: "Field 12511",
+      removable: false
+    });
+
+    if (setupMap()) {
+      render();
+    } else {
+      renderFieldList();
+      fillTable();
+      updateStats();
+    }
   </script>
 </body>
 </html>
