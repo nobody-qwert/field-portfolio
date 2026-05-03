@@ -406,6 +406,26 @@
       white-space: nowrap;
     }
 
+    .crs-control {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .header-select {
+      min-width: 182px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
     .switch {
       position: relative;
       display: inline-block;
@@ -629,6 +649,13 @@
             <input class="file-input header-file-input" id="csvInput" type="file" accept=".csv,text/csv">
           </label>
           <span class="status import-status" id="importStatus" aria-live="polite"></span>
+          <label class="crs-control">
+            <span>CRS</span>
+            <select class="header-select" id="crsSelect">
+              <option value="EPSG:31700" selected>Stereo 70 - EPSG:31700</option>
+              <option value="EPSG:3844">Stereo 70 - EPSG:3844</option>
+            </select>
+          </label>
           <label class="setting-row header-setting">
             <span>Satellite view</span>
             <span class="switch">
@@ -737,6 +764,10 @@
     ];
 
     const fieldColors = ["#0f766e", "#b91c1c", "#1d4ed8", "#a16207", "#7c3aed", "#15803d", "#be185d", "#0369a1"];
+    const crsDefinitions = {
+      "EPSG:31700": "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=28,-121,-77,0,0,0,0 +units=m +no_defs +type=crs",
+      "EPSG:3844": "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,0.309,-0.325,-0.497,5.69 +units=m +no_defs +type=crs"
+    };
     const fields = [];
     let map = null;
     let satelliteLayer = null;
@@ -747,6 +778,7 @@
     const importStatus = document.getElementById("importStatus");
     const csvInput = document.getElementById("csvInput");
     const satelliteToggle = document.getElementById("satelliteToggle");
+    const crsSelect = document.getElementById("crsSelect");
 
     function formatNumber(value, digits = 3) {
       return new Intl.NumberFormat("en-US", {
@@ -807,7 +839,7 @@
     }
 
     function convertPoint(point) {
-      const [lng, lat] = proj4("EPSG:3844", "EPSG:4326", [point.x, point.y]);
+      const [lng, lat] = proj4(crsSelect.value, "EPSG:4326", [point.x, point.y]);
       return { ...point, lat, lng };
     }
 
@@ -846,10 +878,9 @@
         return false;
       }
 
-      proj4.defs(
-        "EPSG:3844",
-        "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,0.309,-0.325,-0.497,5.69 +units=m +no_defs +type=crs"
-      );
+      Object.entries(crsDefinitions).forEach(([code, definition]) => {
+        proj4.defs(code, definition);
+      });
 
       map = L.map("map", {
         preferCanvas: true,
@@ -902,7 +933,7 @@
 
       const center = centroid(field.points);
       if (Number.isFinite(center.x) && Number.isFinite(center.y)) {
-        const [centerLng, centerLat] = proj4("EPSG:3844", "EPSG:4326", [center.x, center.y]);
+        const [centerLng, centerLat] = proj4(crsSelect.value, "EPSG:4326", [center.x, center.y]);
         L.marker([centerLat, centerLng], {
           interactive: false,
           icon: L.divIcon({
@@ -1133,6 +1164,10 @@
 
     satelliteToggle.addEventListener("change", () => {
       setSatelliteVisible(satelliteToggle.checked);
+    });
+
+    crsSelect.addEventListener("change", () => {
+      render();
     });
 
     addField("12511", initialPoints, {
