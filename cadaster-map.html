@@ -356,7 +356,15 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      margin-bottom: 8px;
+    }
+
+    .prompt-label {
+      min-width: 0;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.25;
+      cursor: help;
     }
 
     .prompt-header h2 {
@@ -388,22 +396,17 @@
     }
 
     .prompt-box {
-      width: 100%;
-      min-height: 132px;
-      max-height: 220px;
-      resize: vertical;
-      padding: 9px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #f8fafc;
-      color: var(--ink);
-      font: 12px/1.45 Arial, Helvetica, sans-serif;
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .prompt-copy-status {
       display: block;
       min-height: 18px;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .import-row {
@@ -806,7 +809,7 @@
         </div>
         <div class="panel prompt-panel">
           <div class="prompt-header">
-            <h2>CSV Prompt</h2>
+            <span class="prompt-label" id="csvPromptLabel">Extract Coordinates From Images</span>
             <button class="copy-prompt" id="copyPrompt" type="button" aria-label="Copy CSV prompt" title="Copy prompt">
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2"></rect>
@@ -880,6 +883,7 @@ Return only the CSV.</textarea>
     const addCoordsButton = document.getElementById("addCoordsButton");
     const coordPasteStatus = document.getElementById("coordPasteStatus");
     const csvPrompt = document.getElementById("csvPrompt");
+    const csvPromptLabel = document.getElementById("csvPromptLabel");
     const copyPrompt = document.getElementById("copyPrompt");
     const promptCopyStatus = document.getElementById("promptCopyStatus");
     const satelliteToggle = document.getElementById("satelliteToggle");
@@ -888,6 +892,8 @@ Return only the CSV.</textarea>
     const FIT_BOUNDS_PADDING = [38, 38];
     const FIT_BOUNDS_MAX_ZOOM = 19;
     let parsedPasteFields = [];
+
+    csvPromptLabel.title = csvPrompt.value;
 
     function formatNumber(value, digits = 3) {
       return new Intl.NumberFormat("en-US", {
