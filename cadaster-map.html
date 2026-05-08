@@ -111,7 +111,6 @@
       display: flex;
       position: relative;
       min-height: 0;
-      padding: 16px;
       overflow: hidden;
     }
 
@@ -122,10 +121,9 @@
       width: 100%;
       min-height: 0;
       flex: 1 1 auto;
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      border: 0;
+      border-radius: 0;
       background: #d9e2ea;
-      box-shadow: 0 14px 34px rgb(15 23 42 / 0.08);
     }
 
     .leaflet-pane,
@@ -337,7 +335,7 @@
     }
 
     .panel {
-      padding: 16px;
+      padding: 16px 8px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -349,18 +347,30 @@
 
     .add-field-panel {
       margin-top: auto;
+      padding-top: 12px;
+      padding-bottom: 8px;
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+    }
+
+    .add-coords-button,
+    .copy-prompt {
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 33px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 7px 9px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .copy-prompt {
-      flex: 0 0 auto;
-      border: 1px solid var(--line);
-      border-radius: 6px;
       color: var(--ink);
       background: #f8fafc;
-      cursor: pointer;
-      padding: 7px 10px;
-      font-size: 13px;
-      font-weight: 700;
     }
 
     .copy-prompt:hover {
@@ -389,7 +399,7 @@
 
     .coord-paste-box {
       width: 100%;
-      min-height: 118px;
+      min-height: 106px;
       max-height: 240px;
       resize: vertical;
       padding: 9px;
@@ -404,19 +414,13 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .add-coords-button {
-      min-width: 74px;
-      padding: 7px 12px;
       border: 1px solid var(--accent);
-      border-radius: 6px;
       color: #ffffff;
       background: var(--accent);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 700;
     }
 
     .add-coords-button:disabled {
@@ -432,6 +436,10 @@
 
     .coord-paste-status {
       flex-basis: 100%;
+    }
+
+    .coord-paste-status:empty {
+      display: none;
     }
 
     .file-input {
@@ -773,12 +781,12 @@
         </div>
         <div class="panel add-field-panel">
           <div class="paste-coordinate-form">
-            <textarea class="coord-paste-box" id="coordCsvText" aria-label="Paste coordinates CSV to add a field" spellcheck="false" placeholder="Paste coordinates CSV here to add a field.&#10;&#10;Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
             <div class="paste-actions">
               <button class="add-coords-button" id="addCoordsButton" type="button" disabled>Add Field</button>
               <button class="copy-prompt" id="copyPrompt" type="button">Copy Extract Prompt</button>
               <span class="status coord-paste-status" id="coordPasteStatus" aria-live="polite"></span>
             </div>
+            <textarea class="coord-paste-box" id="coordCsvText" aria-label="Paste coordinates CSV to add a field" spellcheck="false" placeholder="Paste coordinates CSV here to add a field.&#10;&#10;Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
           </div>
           <textarea class="prompt-box" id="csvPrompt" readonly spellcheck="false">Extract cadastral coordinate points from the attached image(s) and output one valid CSV only.
 
