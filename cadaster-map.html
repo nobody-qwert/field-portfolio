@@ -781,12 +781,12 @@
         </div>
         <div class="panel add-field-panel">
           <div class="paste-coordinate-form">
+            <textarea class="coord-paste-box" id="coordCsvText" aria-label="Paste coordinates CSV to add a field" spellcheck="false" placeholder="Paste coordinates CSV here to add a field.&#10;&#10;Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
             <div class="paste-actions">
               <button class="add-coords-button" id="addCoordsButton" type="button" disabled>Add Field</button>
               <button class="copy-prompt" id="copyPrompt" type="button">Copy Extract Prompt</button>
               <span class="status coord-paste-status" id="coordPasteStatus" aria-live="polite"></span>
             </div>
-            <textarea class="coord-paste-box" id="coordCsvText" aria-label="Paste coordinates CSV to add a field" spellcheck="false" placeholder="Paste coordinates CSV here to add a field.&#10;&#10;Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
           </div>
           <textarea class="prompt-box" id="csvPrompt" readonly spellcheck="false">Extract cadastral coordinate points from the attached image(s) and output one valid CSV only.
 
