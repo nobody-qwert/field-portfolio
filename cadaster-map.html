@@ -347,41 +347,20 @@
       line-height: 1.25;
     }
 
-    .prompt-panel {
+    .add-field-panel {
       margin-top: auto;
     }
 
-    .prompt-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .prompt-label {
-      min-width: 0;
-      color: var(--ink);
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1.25;
-      cursor: help;
-    }
-
-    .prompt-header h2 {
-      margin: 0;
-    }
-
     .copy-prompt {
-      display: inline-grid;
-      place-items: center;
-      width: 30px;
-      height: 30px;
       flex: 0 0 auto;
       border: 1px solid var(--line);
       border-radius: 6px;
       color: var(--ink);
       background: #f8fafc;
       cursor: pointer;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .copy-prompt:hover {
@@ -390,23 +369,12 @@
       background: var(--accent-soft);
     }
 
-    .copy-prompt svg {
-      width: 16px;
-      height: 16px;
-    }
-
     .prompt-box {
       position: fixed;
       width: 1px;
       height: 1px;
       opacity: 0;
       pointer-events: none;
-    }
-
-    .prompt-copy-status {
-      display: block;
-      min-height: 18px;
-      margin-top: 4px;
     }
 
     .import-row {
@@ -434,6 +402,7 @@
 
     .paste-actions {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 10px;
     }
@@ -459,6 +428,10 @@
 
     .coord-paste-status[data-state="error"] {
       color: #b91c1c;
+    }
+
+    .coord-paste-status {
+      flex-basis: 100%;
     }
 
     .file-input {
@@ -798,24 +771,14 @@
         <div class="panel">
           <div class="field-list" id="fieldList"></div>
         </div>
-        <div class="panel">
+        <div class="panel add-field-panel">
           <div class="paste-coordinate-form">
             <textarea class="coord-paste-box" id="coordCsvText" aria-label="Paste coordinates CSV to add a field" spellcheck="false" placeholder="Paste coordinates CSV here to add a field.&#10;&#10;Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
             <div class="paste-actions">
               <button class="add-coords-button" id="addCoordsButton" type="button" disabled>Add Field</button>
+              <button class="copy-prompt" id="copyPrompt" type="button">Copy Extract Prompt</button>
               <span class="status coord-paste-status" id="coordPasteStatus" aria-live="polite"></span>
             </div>
-          </div>
-        </div>
-        <div class="panel prompt-panel">
-          <div class="prompt-header">
-            <span class="prompt-label" id="csvPromptLabel">Extract Coordinates From Images</span>
-            <button class="copy-prompt" id="copyPrompt" type="button" aria-label="Copy CSV prompt" title="Copy prompt">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
           </div>
           <textarea class="prompt-box" id="csvPrompt" readonly spellcheck="false">Extract cadastral coordinate points from the attached image(s) and output one valid CSV only.
 
@@ -854,7 +817,6 @@ Before producing the final CSV, internally verify:
 - No duplicate Nr. rows remain.
 
 Return only the CSV.</textarea>
-          <span class="status prompt-copy-status" id="promptCopyStatus" aria-live="polite"></span>
         </div>
       </aside>
     </div>
@@ -883,17 +845,14 @@ Return only the CSV.</textarea>
     const addCoordsButton = document.getElementById("addCoordsButton");
     const coordPasteStatus = document.getElementById("coordPasteStatus");
     const csvPrompt = document.getElementById("csvPrompt");
-    const csvPromptLabel = document.getElementById("csvPromptLabel");
     const copyPrompt = document.getElementById("copyPrompt");
-    const promptCopyStatus = document.getElementById("promptCopyStatus");
     const satelliteToggle = document.getElementById("satelliteToggle");
     const crsSelect = document.getElementById("crsSelect");
     const POINT_DETAIL_MIN_ZOOM = 18;
     const FIT_BOUNDS_PADDING = [38, 38];
     const FIT_BOUNDS_MAX_ZOOM = 19;
     let parsedPasteFields = [];
-
-    csvPromptLabel.title = csvPrompt.value;
+    let copyPromptResetTimer = null;
 
     function formatNumber(value, digits = 3) {
       return new Intl.NumberFormat("en-US", {
@@ -1371,6 +1330,14 @@ Return only the CSV.</textarea>
       }
     });
 
+    function showCopyPromptResult(message) {
+      copyPrompt.textContent = message;
+      window.clearTimeout(copyPromptResetTimer);
+      copyPromptResetTimer = window.setTimeout(() => {
+        copyPrompt.textContent = "Copy Extract Prompt";
+      }, 1600);
+    }
+
     copyPrompt.addEventListener("click", async () => {
       try {
         if (navigator.clipboard && window.isSecureContext) {
@@ -1381,9 +1348,9 @@ Return only the CSV.</textarea>
           csvPrompt.setSelectionRange(0, 0);
         }
 
-        promptCopyStatus.textContent = "Prompt copied.";
+        showCopyPromptResult("Prompt Copied");
       } catch (error) {
-        promptCopyStatus.textContent = "Could not copy prompt.";
+        showCopyPromptResult("Copy Failed");
       }
     });
 
