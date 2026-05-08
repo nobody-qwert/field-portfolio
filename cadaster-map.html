@@ -305,19 +305,27 @@
     }
 
     .leaflet-tooltip.point-tooltip {
-      border: 1px solid var(--line);
+      min-width: 148px;
+      border: 1px solid rgb(255 255 255 / 0.72);
       border-radius: 6px;
-      box-shadow: 0 12px 24px rgb(15 23 42 / 0.16);
-      color: var(--ink);
+      box-shadow: 0 14px 30px rgb(0 0 0 / 0.42);
+      color: #f8fafc;
+      background: rgb(2 6 23 / 0.94);
       font-size: 12px;
       line-height: 1.4;
       padding: 8px 10px;
+      text-shadow: none;
     }
 
     .leaflet-tooltip.point-tooltip strong {
       display: block;
       margin-bottom: 3px;
+      color: #ffffff;
       font-size: 13px;
+    }
+
+    .leaflet-tooltip-top.point-tooltip::before {
+      border-top-color: rgb(2 6 23 / 0.94);
     }
 
     aside {
@@ -909,6 +917,9 @@ Return only the CSV.</textarea>
     const promptCopyStatus = document.getElementById("promptCopyStatus");
     const satelliteToggle = document.getElementById("satelliteToggle");
     const crsSelect = document.getElementById("crsSelect");
+    const POINT_DETAIL_MIN_ZOOM = 18;
+    const FIT_BOUNDS_PADDING = [38, 38];
+    const FIT_BOUNDS_MAX_ZOOM = 19;
     let parsedPasteFields = [];
 
     function formatNumber(value, digits = 3) {
@@ -1003,6 +1014,38 @@ Return only the CSV.</textarea>
       });
     }
 
+    function overlayStyleForZoom(zoom) {
+      const currentZoom = Number.isFinite(zoom) ? zoom : 0;
+
+      if (currentZoom >= POINT_DETAIL_MIN_ZOOM) {
+        return {
+          showPointDetails: true,
+          showFieldName: true,
+          pointRadius: 5,
+          pointWeight: 2,
+          perimeterWeight: 4
+        };
+      }
+
+      if (currentZoom >= 16) {
+        return {
+          showPointDetails: false,
+          showFieldName: false,
+          pointRadius: 0,
+          pointWeight: 0,
+          perimeterWeight: 2
+        };
+      }
+
+      return {
+        showPointDetails: false,
+        showFieldName: false,
+        pointRadius: 0,
+        pointWeight: 0,
+        perimeterWeight: 1
+      };
+    }
+
     function setupMap() {
       if (!window.L || !window.proj4) {
         document.getElementById("map").textContent = "The satellite map needs Leaflet and Proj4 to load from the internet.";
@@ -1030,6 +1073,7 @@ Return only the CSV.</textarea>
       setSatelliteVisible(satelliteToggle.checked);
 
       fieldLayerRoot = L.layerGroup().addTo(map);
+      map.on("zoomend", () => redrawMap());
       return true;
     }
 
@@ -1052,7 +1096,8 @@ Return only the CSV.</textarea>
       }
     }
 
-    function createFieldLayer(field) {
+    function createFieldLayer(field, zoom = map.getZoom()) {
+      const overlayStyle = overlayStyleForZoom(zoom);
       const geoPoints = field.points.map(convertPoint);
       const layer = L.layerGroup();
       const polygonLatLngs = geoPoints.map((point) => [point.lat, point.lng]);
@@ -1061,11 +1106,11 @@ Return only the CSV.</textarea>
         fillColor: field.color,
         fillOpacity: 0.22,
         opacity: 0.98,
-        weight: 4
+        weight: overlayStyle.perimeterWeight
       }).addTo(layer);
 
       const center = centroid(field.points);
-      if (Number.isFinite(center.x) && Number.isFinite(center.y)) {
+      if (overlayStyle.showFieldName && Number.isFinite(center.x) && Number.isFinite(center.y)) {
         const [centerLng, centerLat] = proj4(crsSelect.value, "EPSG:4326", [center.x, center.y]);
         L.marker([centerLat, centerLng], {
           interactive: false,
@@ -1078,62 +1123,81 @@ Return only the CSV.</textarea>
         }).addTo(layer);
       }
 
-      geoPoints.forEach((point) => {
-        const tooltipHtml = `
-          <strong>Field ${escapeHtml(field.id)}, Point ${escapeHtml(point.id)}</strong>
-          X: ${formatCadasterCoord(point.x)}<br>
-          Y: ${formatCadasterCoord(point.y)}<br>
-          Lat: ${point.lat.toFixed(7)}<br>
-          Lng: ${point.lng.toFixed(7)}
-        `;
+      if (overlayStyle.showPointDetails) {
+        geoPoints.forEach((point) => {
+          const tooltipHtml = `
+            <strong>Field ${escapeHtml(field.id)}, Point ${escapeHtml(point.id)}</strong>
+            X: ${formatCadasterCoord(point.x)}<br>
+            Y: ${formatCadasterCoord(point.y)}<br>
+            Lat: ${point.lat.toFixed(7)}<br>
+            Lng: ${point.lng.toFixed(7)}
+          `;
 
-        L.circleMarker([point.lat, point.lng], {
-          radius: 5,
-          color: "#0f172a",
-          fillColor: "#ffffff",
-          fillOpacity: 0.95,
-          weight: 2
-        })
-          .bindTooltip(tooltipHtml, {
-            className: "point-tooltip",
-            direction: "top",
-            opacity: 1,
-            sticky: true
+          L.circleMarker([point.lat, point.lng], {
+            radius: overlayStyle.pointRadius,
+            color: "#0f172a",
+            fillColor: "#ffffff",
+            fillOpacity: 0.95,
+            weight: overlayStyle.pointWeight
           })
-          .addTo(layer);
+            .bindTooltip(tooltipHtml, {
+              className: "point-tooltip",
+              direction: "top",
+              opacity: 1,
+              sticky: true
+            })
+            .addTo(layer);
 
-        L.marker([point.lat, point.lng], {
-          interactive: false,
-          icon: L.divIcon({
-            className: "point-label",
-            html: escapeHtml(point.id),
-            iconSize: [28, 18],
-            iconAnchor: [-7, 14]
-          })
-        }).addTo(layer);
-      });
+          L.marker([point.lat, point.lng], {
+            interactive: false,
+            icon: L.divIcon({
+              className: "point-label",
+              html: escapeHtml(point.id),
+              iconSize: [28, 18],
+              iconAnchor: [-7, 14]
+            })
+          }).addTo(layer);
+        });
+      }
 
       return { group: layer, bounds: parcelLayer.getBounds() };
     }
 
-    function redrawMap() {
+    function redrawMap(options = {}) {
       if (!map || !fieldLayerRoot) {
         return;
       }
 
+      const shouldFitBounds = Boolean(options.fitBounds);
+      const currentZoom = map.getZoom();
       fieldLayerRoot.clearLayers();
       const bounds = L.latLngBounds();
+      let layerZoom = currentZoom;
 
       visibleFields().forEach((field) => {
-        const layer = createFieldLayer(field);
+        const layer = createFieldLayer(field, layerZoom);
         layer.group.addTo(fieldLayerRoot);
         bounds.extend(layer.bounds);
       });
 
-      if (bounds.isValid()) {
+      if (shouldFitBounds && bounds.isValid()) {
+        const targetZoom = Math.min(
+          map.getBoundsZoom(bounds, false, L.point(FIT_BOUNDS_PADDING[0], FIT_BOUNDS_PADDING[1])),
+          FIT_BOUNDS_MAX_ZOOM
+        );
+
+        if (targetZoom !== layerZoom) {
+          layerZoom = targetZoom;
+          fieldLayerRoot.clearLayers();
+          visibleFields().forEach((field) => {
+            const layer = createFieldLayer(field, layerZoom);
+            layer.group.addTo(fieldLayerRoot);
+          });
+        }
+
         map.fitBounds(bounds, {
-          padding: [38, 38],
-          maxZoom: 19
+          padding: FIT_BOUNDS_PADDING,
+          maxZoom: FIT_BOUNDS_MAX_ZOOM
         });
       }
     }
@@ -1178,7 +1242,7 @@ Return only the CSV.</textarea>
 
     function render() {
       renderFieldList();
-      redrawMap();
+      redrawMap({ fitBounds: true });
       fillTable();
       updateStats();
     }
