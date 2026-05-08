@@ -342,6 +342,11 @@
       border-bottom: 1px solid var(--line);
     }
 
+    .field-list-panel {
+      padding-right: 0;
+      padding-left: 0;
+    }
+
     h2 {
       margin: 0 0 10px;
       font-size: 15px;
@@ -575,10 +580,11 @@
 
     .field-list {
       display: grid;
-      gap: 8px;
+      gap: 6px;
     }
 
     .field-empty {
+      margin: 0 8px;
       padding: 12px;
       border: 1px dashed var(--line);
       border-radius: 6px;
@@ -597,20 +603,40 @@
 
     .field-item {
       display: grid;
-      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
       gap: 9px;
-      padding: 9px;
+      padding: 9px 8px;
       border: 1px solid var(--line);
-      border-radius: 6px;
+      border-right: 0;
+      border-left: 0;
       background: #f8fafc;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 0 transparent;
+      transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
     }
 
-    .field-item input {
-      width: 16px;
-      height: 16px;
-      margin: 0;
-      accent-color: var(--accent);
+    .field-item.is-visible {
+      border-color: #7dd3fc;
+      background: #dff3ff;
+      box-shadow: inset 4px 0 0 var(--field-color), inset 0 0 0 1px #7dd3fc;
+    }
+
+    .field-item:hover {
+      background: #f1f5f9;
+    }
+
+    .field-item.is-visible:hover {
+      background: #ccecff;
+    }
+
+    .field-item:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .field-item:not(.is-visible) .field-swatch {
+      opacity: 0.45;
     }
 
     .field-swatch {
@@ -624,7 +650,6 @@
       display: grid;
       gap: 2px;
       min-width: 0;
-      cursor: pointer;
     }
 
     .field-name {
@@ -775,7 +800,7 @@
       </section>
 
       <aside>
-        <div class="panel">
+        <div class="panel field-list-panel">
           <div class="field-list" id="fieldList"></div>
         </div>
         <div class="panel add-field-panel">
@@ -1153,13 +1178,12 @@ Return only the CSV.</textarea>
       }
 
       fieldList.innerHTML = fields.map((field, index) => `
-        <div class="field-item" style="--field-color: ${field.color}">
-          <input id="fieldToggle${index}" type="checkbox" data-field-index="${index}" ${field.visible ? "checked" : ""}>
+        <div class="field-item ${field.visible ? "is-visible" : ""}" role="button" tabindex="0" aria-pressed="${field.visible}" data-field-index="${index}" style="--field-color: ${field.color}">
           <span class="field-swatch" aria-hidden="true"></span>
-          <label class="field-meta" for="fieldToggle${index}">
+          <div class="field-meta">
             <span class="field-name">${escapeHtml(field.name)}</span>
             <span class="field-detail">${field.points.length} points · ${formatNumber(areaSquareMeters(field.points), 2)} m²</span>
-          </label>
+          </div>
           ${field.removable ? `<button class="field-remove" type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(field.name)}">×</button>` : ""}
         </div>
       `).join("");
@@ -1283,23 +1307,50 @@ Return only the CSV.</textarea>
       }
     }
 
-    fieldList.addEventListener("change", (event) => {
-      const index = Number(event.target.dataset.fieldIndex);
-      if (!Number.isInteger(index)) {
+    fieldList.addEventListener("click", (event) => {
+      const removeButton = event.target.closest("[data-remove-index]");
+      if (removeButton) {
+        const index = Number(removeButton.dataset.removeIndex);
+        if (!Number.isInteger(index)) {
+          return;
+        }
+
+        fields.splice(index, 1);
+        render();
         return;
       }
 
-      fields[index].visible = event.target.checked;
+      const fieldItem = event.target.closest("[data-field-index]");
+      if (!fieldItem || !fieldList.contains(fieldItem)) {
+        return;
+      }
+
+      const index = Number(fieldItem.dataset.fieldIndex);
+      if (!Number.isInteger(index) || !fields[index]) {
+        return;
+      }
+
+      fields[index].visible = !fields[index].visible;
       render();
     });
 
-    fieldList.addEventListener("click", (event) => {
-      const index = Number(event.target.dataset.removeIndex);
-      if (!Number.isInteger(index)) {
+    fieldList.addEventListener("keydown", (event) => {
+      if ((event.key !== "Enter" && event.key !== " ") || event.target.closest("button")) {
         return;
       }
 
-      fields.splice(index, 1);
+      const fieldItem = event.target.closest("[data-field-index]");
+      if (!fieldItem || !fieldList.contains(fieldItem)) {
+        return;
+      }
+
+      const index = Number(fieldItem.dataset.fieldIndex);
+      if (!Number.isInteger(index) || !fields[index]) {
+        return;
+      }
+
+      event.preventDefault();
+      fields[index].visible = !fields[index].visible;
       render();
     });
 
