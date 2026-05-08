@@ -52,7 +52,7 @@
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
       gap: 12px;
-      padding: 10px 16px;
+      padding: 5px 16px;
       border-bottom: 1px solid var(--line);
       background: var(--surface);
     }
@@ -452,8 +452,8 @@
       align-items: center;
       justify-content: center;
       min-width: 0;
-      min-height: 32px;
-      padding: 7px 12px;
+      min-height: 28px;
+      padding: 5px 11px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: #f8fafc;
@@ -646,7 +646,7 @@
       white-space: nowrap;
     }
 
-    .field-detail {
+    .field-area {
       color: var(--muted);
       font-size: 12px;
     }
@@ -1154,11 +1154,11 @@ Return only the CSV.</textarea>
       }
 
       fieldList.innerHTML = fields.map((field, index) => `
-        <div class="field-item ${field.visible ? "is-visible" : ""}" role="button" tabindex="0" aria-pressed="${field.visible}" data-field-index="${index}" style="--field-color: ${field.color}">
+        <div class="field-item ${field.visible ? "is-visible" : ""}" role="button" tabindex="0" aria-pressed="${field.visible}" data-field-index="${index}" title="${field.points.length} points" style="--field-color: ${field.color}">
           <span class="field-swatch" aria-hidden="true"></span>
           <div class="field-meta">
             <span class="field-name">${escapeHtml(field.name)}</span>
-            <span class="field-detail">${field.points.length} points · ${formatNumber(areaSquareMeters(field.points), 2)} m²</span>
+            <span class="field-area">${formatNumber(areaSquareMeters(field.points), 2)} m²</span>
           </div>
           ${field.removable ? `<button class="field-remove" type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(field.name)}">×</button>` : ""}
         </div>
@@ -1173,9 +1173,23 @@ Return only the CSV.</textarea>
       document.getElementById("fieldCount").textContent = String(selectedFields.length);
     }
 
-    function render() {
+    function centerField(field) {
+      if (!map || !field) {
+        return;
+      }
+
+      const center = centroid(field.points);
+      if (!Number.isFinite(center.x) || !Number.isFinite(center.y)) {
+        return;
+      }
+
+      const [lng, lat] = proj4(ACTIVE_CRS, "EPSG:4326", [center.x, center.y]);
+      map.panTo([lat, lng]);
+    }
+
+    function render(options = {}) {
       renderFieldList();
-      redrawMap({ fitBounds: true });
+      redrawMap({ fitBounds: options.fitBounds !== false });
       updateStats();
     }
 
@@ -1307,7 +1321,10 @@ Return only the CSV.</textarea>
       }
 
       fields[index].visible = !fields[index].visible;
-      render();
+      render({ fitBounds: false });
+      if (fields[index].visible) {
+        centerField(fields[index]);
+      }
     });
 
     fieldList.addEventListener("keydown", (event) => {
@@ -1327,7 +1344,10 @@ Return only the CSV.</textarea>
 
       event.preventDefault();
       fields[index].visible = !fields[index].visible;
-      render();
+      render({ fitBounds: false });
+      if (fields[index].visible) {
+        centerField(fields[index]);
+      }
     });
 
     csvInput.addEventListener("change", async (event) => {
