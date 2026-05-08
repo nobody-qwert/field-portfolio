@@ -447,31 +447,37 @@
       display: none;
     }
 
-    .file-input {
-      width: 100%;
-      padding: 8px;
+    .import-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 32px;
+      padding: 7px 12px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: #f8fafc;
       color: var(--ink);
-      font-size: 13px;
-    }
-
-    .file-control {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      color: var(--ink);
+      cursor: pointer;
       font-size: 13px;
       font-weight: 700;
       white-space: nowrap;
     }
 
-    .header-file-input {
-      width: 210px;
-      padding: 5px 7px;
-      font-size: 12px;
+    .import-button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
     .hint,
@@ -711,10 +717,6 @@
         width: 100%;
       }
 
-      .header-file-input {
-        width: min(240px, 100%);
-      }
-
       .layout {
         display: block;
       }
@@ -744,9 +746,9 @@
     <header>
       <div class="title-tools">
         <div class="header-controls">
-          <label class="file-control">
-            <span>Import CSV</span>
-            <input class="file-input header-file-input" id="csvInput" type="file" accept=".csv,text/csv">
+          <label class="import-button" title="Import coordinates from CSV">
+            <span>Import</span>
+            <input class="file-input" id="csvInput" type="file" accept=".csv,text/csv">
           </label>
         </div>
       </div>
