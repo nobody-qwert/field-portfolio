@@ -720,49 +720,6 @@
   ></script>
   <script src="https://unpkg.com/proj4@2.12.1/dist/proj4.js"></script>
   <script>
-    const initialPoints = [
-      { id: 1, x: 471485.902, y: 556443.344 },
-      { id: 2, x: 471473.137, y: 556355.069 },
-      { id: 3, x: 471509.293, y: 556347.704 },
-      { id: 4, x: 471528.543, y: 556344.055 },
-      { id: 5, x: 471536.354, y: 556342.945 },
-      { id: 6, x: 471544.293, y: 556341.878 },
-      { id: 7, x: 471552.958, y: 556342.049 },
-      { id: 8, x: 471563.543, y: 556343.073 },
-      { id: 9, x: 471573.107, y: 556344.208 },
-      { id: 10, x: 471575.601, y: 556345.570 },
-      { id: 11, x: 471577.778, y: 556348.088 },
-      { id: 12, x: 471578.973, y: 556351.332 },
-      { id: 13, x: 471579.357, y: 556356.198 },
-      { id: 14, x: 471579.272, y: 556360.381 },
-      { id: 15, x: 471579.485, y: 556365.588 },
-      { id: 16, x: 471579.827, y: 556370.070 },
-      { id: 17, x: 471580.552, y: 556373.655 },
-      { id: 18, x: 471581.620, y: 556377.070 },
-      { id: 19, x: 471583.028, y: 556379.503 },
-      { id: 20, x: 471585.077, y: 556382.107 },
-      { id: 21, x: 471587.296, y: 556384.113 },
-      { id: 22, x: 471589.281, y: 556385.223 },
-      { id: 23, x: 471590.924, y: 556385.799 },
-      { id: 24, x: 471592.717, y: 556385.735 },
-      { id: 25, x: 471594.809, y: 556385.180 },
-      { id: 26, x: 471596.644, y: 556384.027 },
-      { id: 27, x: 471598.821, y: 556383.174 },
-      { id: 28, x: 471600.955, y: 556382.918 },
-      { id: 29, x: 471603.548, y: 556383.024 },
-      { id: 30, x: 471633.169, y: 556389.473 },
-      { id: 31, x: 471693.620, y: 556404.643 },
-      { id: 32, x: 471694.143, y: 556409.356 },
-      { id: 33, x: 471694.266, y: 556410.465 },
-      { id: 34, x: 471671.382, y: 556410.918 },
-      { id: 35, x: 471649.913, y: 556412.796 },
-      { id: 36, x: 471629.254, y: 556415.442 },
-      { id: 37, x: 471596.473, y: 556421.418 },
-      { id: 38, x: 471556.479, y: 556429.015 },
-      { id: 39, x: 471527.753, y: 556434.394 },
-      { id: 40, x: 471506.113, y: 556438.363 }
-    ];
-
     const fieldColors = ["#0f766e", "#b91c1c", "#1d4ed8", "#a16207", "#7c3aed", "#15803d", "#be185d", "#0369a1"];
     const crsDefinitions = {
       "EPSG:31700": "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=28,-121,-77,0,0,0,0 +units=m +no_defs +type=crs",
@@ -886,11 +843,13 @@
         preferCanvas: true,
         zoomControl: true
       });
+      map.setView([46, 25], 7);
 
       satelliteLayer = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
           maxZoom: 20,
+          maxNativeZoom: 18,
           attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
         }
       );
@@ -924,11 +883,11 @@
       const layer = L.layerGroup();
       const polygonLatLngs = geoPoints.map((point) => [point.lat, point.lng]);
       const parcelLayer = L.polygon(polygonLatLngs, {
-        color: "#0b1220",
+        color: "#f8fafc",
         fillColor: field.color,
         fillOpacity: 0.22,
-        opacity: 0.95,
-        weight: 3
+        opacity: 0.98,
+        weight: 4
       }).addTo(layer);
 
       const center = centroid(field.points);
@@ -1037,10 +996,10 @@
       const perimeter = selectedFields.reduce((total, field) => total + perimeterMeters(field.points), 0);
       const pointCount = selectedFields.reduce((total, field) => total + field.points.length, 0);
 
-      document.getElementById("areaValue").textContent = `${formatNumber(area)} m²`;
-      document.getElementById("perimeterValue").textContent = `${formatNumber(perimeter)} m`;
-      document.getElementById("pointCount").textContent = String(pointCount);
-      document.getElementById("fieldCount").textContent = String(selectedFields.length);
+      document.getElementById("areaValue").textContent = selectedFields.length ? `${formatNumber(area)} m²` : "-";
+      document.getElementById("perimeterValue").textContent = selectedFields.length ? `${formatNumber(perimeter)} m` : "-";
+      document.getElementById("pointCount").textContent = selectedFields.length ? String(pointCount) : "-";
+      document.getElementById("fieldCount").textContent = selectedFields.length ? String(selectedFields.length) : "-";
     }
 
     function render() {
@@ -1168,11 +1127,6 @@
 
     crsSelect.addEventListener("change", () => {
       render();
-    });
-
-    addField("12511", initialPoints, {
-      name: "Field 12511",
-      removable: false
     });
 
     if (setupMap()) {
