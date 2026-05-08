@@ -321,6 +321,8 @@
     }
 
     aside {
+      display: flex;
+      flex-direction: column;
       overflow: auto;
       border-left: 1px solid var(--line);
       background: var(--surface);
@@ -335,6 +337,65 @@
       margin: 0 0 10px;
       font-size: 15px;
       line-height: 1.25;
+    }
+
+    .prompt-panel {
+      margin-top: auto;
+    }
+
+    .prompt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .prompt-header h2 {
+      margin: 0;
+    }
+
+    .copy-prompt {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: #f8fafc;
+      cursor: pointer;
+    }
+
+    .copy-prompt:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .copy-prompt svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .prompt-box {
+      width: 100%;
+      min-height: 132px;
+      max-height: 220px;
+      resize: vertical;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+      color: var(--ink);
+      font: 12px/1.45 Arial, Helvetica, sans-serif;
+    }
+
+    .prompt-copy-status {
+      display: block;
+      min-height: 18px;
+      margin-top: 6px;
     }
 
     .import-row {
@@ -709,6 +770,55 @@
             <tbody id="pointsTable"></tbody>
           </table>
         </div>
+        <div class="panel prompt-panel">
+          <div class="prompt-header">
+            <h2>CSV Prompt</h2>
+            <button class="copy-prompt" id="copyPrompt" type="button" aria-label="Copy CSV prompt" title="Copy prompt">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+          <textarea class="prompt-box" id="csvPrompt" readonly spellcheck="false">Extract cadastral coordinate points from the attached image(s) and output one valid CSV only.
+
+The table may be split across multiple images, pages, or side-by-side partial tables. Read all visible table fragments and merge them into one ordered point list.
+
+Target CSV format:
+Nr.,x,y,IE
+
+Rules:
+- Output only CSV text. Do not add explanations, markdown, code fences, notes, or comments.
+- Use exactly this header: Nr.,x,y,IE
+- Each row must contain one unique cadastral point.
+- The point number comes from the "Punct inceput" column when available.
+- The coordinate pair comes from the X / Y column next to that "Punct inceput".
+- Ignore "Punct sfarsit" coordinate pairs if they duplicate the next row's start point.
+- Use "Punct sfarsit" only to recover a missing final point if that point is not otherwise listed as a start point.
+- Ignore the "Lungime segment" column.
+- Preserve the original point order by point number.
+- Convert Romanian/European coordinate formatting to plain numeric CSV:
+  - Remove thousands separators.
+  - Convert decimal comma to decimal point.
+  - Example: 470.428,416 becomes 470428.416
+  - Example: 557.958,594 becomes 557958.594
+- If a coordinate wraps onto two lines, join the lines before conversion.
+- If the table is split into multiple side-by-side blocks, continue reading left to right, top to bottom, unless point numbers show a different order.
+- If multiple images/pages are provided, combine all fragments using the point numbers.
+- Do not duplicate points that appear in overlapping fragments.
+- The IE value is the cadastral/imobil number shown in the page title, such as "imobilul nr. 15573". Use that value for every row.
+- If no IE number is visible, use UNKNOWN as the IE value.
+- If a digit is unclear, infer it only when the neighboring segment rows confirm the same coordinate. Otherwise write [UNCLEAR] in that cell.
+
+Before producing the final CSV, internally verify:
+- Point numbers are consecutive where possible.
+- The end point of each segment matches the next start point.
+- The final segment may end at point 1, which closes the polygon.
+- No duplicate Nr. rows remain.
+
+Return only the CSV.</textarea>
+          <span class="status prompt-copy-status" id="promptCopyStatus" aria-live="polite"></span>
+        </div>
       </aside>
     </div>
   </main>
@@ -734,6 +844,9 @@
     const fieldList = document.getElementById("fieldList");
     const importStatus = document.getElementById("importStatus");
     const csvInput = document.getElementById("csvInput");
+    const csvPrompt = document.getElementById("csvPrompt");
+    const copyPrompt = document.getElementById("copyPrompt");
+    const promptCopyStatus = document.getElementById("promptCopyStatus");
     const satelliteToggle = document.getElementById("satelliteToggle");
     const crsSelect = document.getElementById("crsSelect");
 
@@ -1118,6 +1231,22 @@
         render();
       } catch (error) {
         importStatus.textContent = error.message;
+      }
+    });
+
+    copyPrompt.addEventListener("click", async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(csvPrompt.value);
+        } else {
+          csvPrompt.select();
+          document.execCommand("copy");
+          csvPrompt.setSelectionRange(0, 0);
+        }
+
+        promptCopyStatus.textContent = "Prompt copied.";
+      } catch (error) {
+        promptCopyStatus.textContent = "Could not copy prompt.";
       }
     });
 
