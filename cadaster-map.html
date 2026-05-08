@@ -403,6 +403,53 @@
       gap: 8px;
     }
 
+    .paste-coordinate-form {
+      display: grid;
+      gap: 9px;
+    }
+
+    .coord-paste-box {
+      width: 100%;
+      min-height: 118px;
+      max-height: 240px;
+      resize: vertical;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+      color: var(--ink);
+      font: 12px/1.45 Arial, Helvetica, sans-serif;
+    }
+
+    .paste-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .add-coords-button {
+      min-width: 74px;
+      padding: 7px 12px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: #ffffff;
+      background: var(--accent);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .add-coords-button:disabled {
+      border-color: var(--line);
+      color: var(--muted);
+      background: #e5e7eb;
+      cursor: not-allowed;
+    }
+
+    .coord-paste-status[data-state="error"] {
+      color: #b91c1c;
+    }
+
     .file-input {
       width: 100%;
       padding: 8px;
@@ -770,6 +817,16 @@
             <tbody id="pointsTable"></tbody>
           </table>
         </div>
+        <div class="panel">
+          <h2>Add Coordinates</h2>
+          <div class="paste-coordinate-form">
+            <textarea class="coord-paste-box" id="coordCsvText" spellcheck="false" placeholder="Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
+            <div class="paste-actions">
+              <button class="add-coords-button" id="addCoordsButton" type="button" disabled>Add</button>
+              <span class="status coord-paste-status" id="coordPasteStatus" aria-live="polite"></span>
+            </div>
+          </div>
+        </div>
         <div class="panel prompt-panel">
           <div class="prompt-header">
             <h2>CSV Prompt</h2>
@@ -844,11 +901,15 @@ Return only the CSV.</textarea>
     const fieldList = document.getElementById("fieldList");
     const importStatus = document.getElementById("importStatus");
     const csvInput = document.getElementById("csvInput");
+    const coordCsvText = document.getElementById("coordCsvText");
+    const addCoordsButton = document.getElementById("addCoordsButton");
+    const coordPasteStatus = document.getElementById("coordPasteStatus");
     const csvPrompt = document.getElementById("csvPrompt");
     const copyPrompt = document.getElementById("copyPrompt");
     const promptCopyStatus = document.getElementById("promptCopyStatus");
     const satelliteToggle = document.getElementById("satelliteToggle");
     const crsSelect = document.getElementById("crsSelect");
+    let parsedPasteFields = [];
 
     function formatNumber(value, digits = 3) {
       return new Intl.NumberFormat("en-US", {
@@ -1197,6 +1258,35 @@ Return only the CSV.</textarea>
       });
     }
 
+    function importFields(importedFields) {
+      importedFields.forEach((field) => addField(field.id, field.points));
+      render();
+    }
+
+    function setCoordPasteStatus(message, state = "") {
+      coordPasteStatus.textContent = message;
+      coordPasteStatus.dataset.state = state;
+    }
+
+    function validateCoordPaste() {
+      const csvText = coordCsvText.value.trim();
+      parsedPasteFields = [];
+      addCoordsButton.disabled = true;
+
+      if (!csvText) {
+        setCoordPasteStatus("");
+        return;
+      }
+
+      try {
+        parsedPasteFields = parseCsvFields(csvText);
+        addCoordsButton.disabled = false;
+        setCoordPasteStatus(`Ready to add ${parsedPasteFields.length} field${parsedPasteFields.length === 1 ? "" : "s"}.`);
+      } catch (error) {
+        setCoordPasteStatus(error.message, "error");
+      }
+    }
+
     fieldList.addEventListener("change", (event) => {
       const index = Number(event.target.dataset.fieldIndex);
       if (!Number.isInteger(index)) {
@@ -1225,12 +1315,28 @@ Return only the CSV.</textarea>
 
       try {
         const importedFields = parseCsvFields(await file.text());
-        importedFields.forEach((field) => addField(field.id, field.points));
+        importFields(importedFields);
         importStatus.textContent = `Imported ${importedFields.length} field${importedFields.length === 1 ? "" : "s"} from ${file.name}.`;
         csvInput.value = "";
-        render();
       } catch (error) {
         importStatus.textContent = error.message;
+      }
+    });
+
+    coordCsvText.addEventListener("input", validateCoordPaste);
+
+    addCoordsButton.addEventListener("click", () => {
+      try {
+        const importedFields = parsedPasteFields.length ? parsedPasteFields : parseCsvFields(coordCsvText.value.trim());
+        importFields(importedFields);
+        coordCsvText.value = "";
+        parsedPasteFields = [];
+        addCoordsButton.disabled = true;
+        setCoordPasteStatus(`Added ${importedFields.length} field${importedFields.length === 1 ? "" : "s"}.`);
+      } catch (error) {
+        setCoordPasteStatus(error.message, "error");
+        parsedPasteFields = [];
+        addCoordsButton.disabled = true;
       }
     });
 
