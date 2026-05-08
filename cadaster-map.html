@@ -48,9 +48,9 @@
     header {
       grid-column: 1;
       grid-row: 1;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
-      justify-content: space-between;
       gap: 12px;
       padding: 10px 16px;
       border-bottom: 1px solid var(--line);
@@ -77,19 +77,16 @@
       display: flex;
       flex: 0 0 auto;
       flex-wrap: nowrap;
-      gap: 8px;
-      justify-content: flex-end;
+      gap: 18px;
+      justify-content: center;
+      justify-self: center;
     }
 
     .stat {
       display: flex;
       align-items: baseline;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
-      padding: 6px 9px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #f8fafc;
     }
 
     .stat span {
@@ -506,24 +503,8 @@
       white-space: nowrap;
     }
 
-    .crs-control {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--ink);
-      font-size: 13px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .header-select {
-      min-width: 182px;
-      padding: 5px 8px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #f8fafc;
-      color: var(--ink);
-      font-size: 12px;
+    .header-satellite {
+      justify-self: end;
     }
 
     .switch {
@@ -713,6 +694,7 @@
       }
 
       header {
+        display: flex;
         align-items: flex-start;
         flex-direction: column;
       }
@@ -752,6 +734,7 @@
 
       .stats {
         justify-content: flex-start;
+        justify-self: auto;
       }
     }
   </style>
@@ -765,32 +748,25 @@
             <span>Import CSV</span>
             <input class="file-input header-file-input" id="csvInput" type="file" accept=".csv,text/csv">
           </label>
-          <label class="crs-control">
-            <span>CRS</span>
-            <select class="header-select" id="crsSelect">
-              <option value="EPSG:31700" selected>Stereo 70 - EPSG:31700</option>
-              <option value="EPSG:3844">Stereo 70 - EPSG:3844</option>
-            </select>
-          </label>
-          <label class="setting-row header-setting">
-            <span>Satellite view</span>
-            <span class="switch">
-              <input id="satelliteToggle" type="checkbox" role="switch" aria-checked="true" checked>
-              <span class="switch-slider" aria-hidden="true"></span>
-            </span>
-          </label>
         </div>
       </div>
       <div class="stats" aria-live="polite">
         <div class="stat">
           <span>Area</span>
-          <strong id="areaValue">-</strong>
+          <strong id="areaValue">0 m²</strong>
         </div>
         <div class="stat">
           <span>Visible Fields</span>
-          <strong id="fieldCount">-</strong>
+          <strong id="fieldCount">0</strong>
         </div>
       </div>
+      <label class="setting-row header-setting header-satellite">
+        <span>Satellite view</span>
+        <span class="switch">
+          <input id="satelliteToggle" type="checkbox" role="switch" aria-checked="true" checked>
+          <span class="switch-slider" aria-hidden="true"></span>
+        </span>
+      </label>
     </header>
 
     <div class="layout">
@@ -861,9 +837,9 @@ Return only the CSV.</textarea>
   <script src="https://unpkg.com/proj4@2.12.1/dist/proj4.js"></script>
   <script>
     const fieldColors = ["#0f766e", "#b91c1c", "#1d4ed8", "#a16207", "#7c3aed", "#15803d", "#be185d", "#0369a1"];
+    const ACTIVE_CRS = "EPSG:31700";
     const crsDefinitions = {
-      "EPSG:31700": "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=28,-121,-77,0,0,0,0 +units=m +no_defs +type=crs",
-      "EPSG:3844": "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,0.309,-0.325,-0.497,5.69 +units=m +no_defs +type=crs"
+      [ACTIVE_CRS]: "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=28,-121,-77,0,0,0,0 +units=m +no_defs +type=crs"
     };
     const fields = [];
     let map = null;
@@ -878,7 +854,6 @@ Return only the CSV.</textarea>
     const csvPrompt = document.getElementById("csvPrompt");
     const copyPrompt = document.getElementById("copyPrompt");
     const satelliteToggle = document.getElementById("satelliteToggle");
-    const crsSelect = document.getElementById("crsSelect");
     const POINT_DETAIL_MIN_ZOOM = 18;
     const FIT_BOUNDS_PADDING = [38, 38];
     const FIT_BOUNDS_MAX_ZOOM = 19;
@@ -944,7 +919,7 @@ Return only the CSV.</textarea>
     }
 
     function convertPoint(point) {
-      const [lng, lat] = proj4(crsSelect.value, "EPSG:4326", [point.x, point.y]);
+      const [lng, lat] = proj4(ACTIVE_CRS, "EPSG:4326", [point.x, point.y]);
       return { ...point, lat, lng };
     }
 
@@ -1074,7 +1049,7 @@ Return only the CSV.</textarea>
 
       const center = centroid(field.points);
       if (overlayStyle.showFieldName && Number.isFinite(center.x) && Number.isFinite(center.y)) {
-        const [centerLng, centerLat] = proj4(crsSelect.value, "EPSG:4326", [center.x, center.y]);
+        const [centerLng, centerLat] = proj4(ACTIVE_CRS, "EPSG:4326", [center.x, center.y]);
         L.marker([centerLat, centerLng], {
           interactive: false,
           icon: L.divIcon({
@@ -1192,8 +1167,8 @@ Return only the CSV.</textarea>
       const selectedFields = visibleFields();
       const area = selectedFields.reduce((total, field) => total + areaSquareMeters(field.points), 0);
 
-      document.getElementById("areaValue").textContent = selectedFields.length ? `${formatNumber(area)} m²` : "-";
-      document.getElementById("fieldCount").textContent = selectedFields.length ? String(selectedFields.length) : "-";
+      document.getElementById("areaValue").textContent = selectedFields.length ? `${formatNumber(area)} m²` : "0 m²";
+      document.getElementById("fieldCount").textContent = String(selectedFields.length);
     }
 
     function render() {
@@ -1411,10 +1386,6 @@ Return only the CSV.</textarea>
 
     satelliteToggle.addEventListener("change", () => {
       setSatelliteVisible(satelliteToggle.checked);
-    });
-
-    crsSelect.addEventListener("change", () => {
-      render();
     });
 
     if (setupMap()) {
