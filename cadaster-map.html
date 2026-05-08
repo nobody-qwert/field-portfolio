@@ -662,35 +662,6 @@
       background: #fff5f5;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    th,
-    td {
-      padding: 6px 5px;
-      border-bottom: 1px solid #edf1f5;
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    th:first-child,
-    td:first-child {
-      text-align: left;
-    }
-
-    th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      color: var(--muted);
-      background: var(--surface);
-      font-weight: 700;
-    }
-
     .tooltip {
       position: fixed;
       z-index: 20;
@@ -812,20 +783,6 @@
           <div class="field-list" id="fieldList"></div>
         </div>
         <div class="panel">
-          <h2>Point Coordinates</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Field</th>
-                <th>Point</th>
-                <th>X</th>
-                <th>Y</th>
-              </tr>
-            </thead>
-            <tbody id="pointsTable"></tbody>
-          </table>
-        </div>
-        <div class="panel">
           <h2>Add Coordinates</h2>
           <div class="paste-coordinate-form">
             <textarea class="coord-paste-box" id="coordCsvText" spellcheck="false" placeholder="Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
@@ -905,7 +862,6 @@ Return only the CSV.</textarea>
     let satelliteLayer = null;
     let fieldLayerRoot = null;
 
-    const tableBody = document.getElementById("pointsTable");
     const fieldList = document.getElementById("fieldList");
     const importStatus = document.getElementById("importStatus");
     const csvInput = document.getElementById("csvInput");
@@ -1216,18 +1172,6 @@ Return only the CSV.</textarea>
       `).join("");
     }
 
-    function fillTable() {
-      const rows = visibleFields().flatMap((field) => field.points.map((point) => `
-        <tr>
-          <td>${escapeHtml(field.id)}</td>
-          <td>${escapeHtml(point.id)}</td>
-          <td>${formatCadasterCoord(point.x)}</td>
-          <td>${formatCadasterCoord(point.y)}</td>
-        </tr>
-      `));
-      tableBody.innerHTML = rows.join("");
-    }
-
     function updateStats() {
       const selectedFields = visibleFields();
       const area = selectedFields.reduce((total, field) => total + areaSquareMeters(field.points), 0);
@@ -1243,7 +1187,6 @@ Return only the CSV.</textarea>
     function render() {
       renderFieldList();
       redrawMap({ fitBounds: true });
-      fillTable();
       updateStats();
     }
 
@@ -1432,7 +1375,6 @@ Return only the CSV.</textarea>
       render();
     } else {
       renderFieldList();
-      fillTable();
       updateStats();
     }
   </script>
