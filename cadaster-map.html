@@ -82,10 +82,11 @@
     }
 
     .stat {
-      display: grid;
-      gap: 3px;
-      min-width: 116px;
-      padding: 6px 10px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+      padding: 6px 9px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: #f8fafc;
@@ -94,11 +95,13 @@
     .stat span {
       color: var(--muted);
       font-size: 12px;
+      white-space: nowrap;
     }
 
     .stat strong {
       font-size: 15px;
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     .layout {
@@ -760,10 +763,6 @@
           <strong id="areaValue">-</strong>
         </div>
         <div class="stat">
-          <span>Perimeter</span>
-          <strong id="perimeterValue">-</strong>
-        </div>
-        <div class="stat">
           <span>Visible Fields</span>
           <strong id="fieldCount">-</strong>
         </div>
@@ -1169,10 +1168,8 @@ Return only the CSV.</textarea>
     function updateStats() {
       const selectedFields = visibleFields();
       const area = selectedFields.reduce((total, field) => total + areaSquareMeters(field.points), 0);
-      const perimeter = selectedFields.reduce((total, field) => total + perimeterMeters(field.points), 0);
 
       document.getElementById("areaValue").textContent = selectedFields.length ? `${formatNumber(area)} m²` : "-";
-      document.getElementById("perimeterValue").textContent = selectedFields.length ? `${formatNumber(perimeter)} m` : "-";
       document.getElementById("fieldCount").textContent = selectedFields.length ? String(selectedFields.length) : "-";
     }
 
