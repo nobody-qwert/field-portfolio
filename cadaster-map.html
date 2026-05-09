@@ -299,7 +299,8 @@
       text-shadow: 0 2px 5px rgb(0 0 0 / 0.85);
     }
 
-    .leaflet-tooltip.point-tooltip {
+    .leaflet-tooltip.point-tooltip,
+    .leaflet-tooltip.field-tooltip {
       min-width: 148px;
       border: 1px solid rgb(255 255 255 / 0.72);
       border-radius: 6px;
@@ -312,14 +313,16 @@
       text-shadow: none;
     }
 
-    .leaflet-tooltip.point-tooltip strong {
+    .leaflet-tooltip.point-tooltip strong,
+    .leaflet-tooltip.field-tooltip strong {
       display: block;
       margin-bottom: 3px;
       color: #ffffff;
       font-size: 13px;
     }
 
-    .leaflet-tooltip-top.point-tooltip::before {
+    .leaflet-tooltip-top.point-tooltip::before,
+    .leaflet-tooltip-top.field-tooltip::before {
       border-top-color: rgb(2 6 23 / 0.94);
     }
 
@@ -640,12 +643,47 @@
       min-width: 0;
     }
 
+    .field-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
     .field-name {
-      overflow: hidden;
+      flex: 0 0 7ch;
       font-size: 13px;
       font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .field-nickname {
+      display: block;
+      min-width: 0;
+      width: 100%;
+      overflow: hidden;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 1px 4px;
+      color: var(--muted);
+      background: transparent;
+      font: inherit;
+      font-size: 12px;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    input.field-nickname:hover,
+    input.field-nickname:focus {
+      border-color: var(--line);
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    span.field-nickname {
+      padding-right: 0;
+      padding-left: 0;
     }
 
     .field-area {
@@ -747,11 +785,12 @@
   <main>
     <header>
       <div class="title-tools">
-        <div class="header-controls">
+        <div class="header-controls" data-editor-only>
           <label class="import-button" title="Import coordinates from CSV">
             <span>Import</span>
             <input class="file-input" id="csvInput" type="file" accept=".csv,text/csv">
           </label>
+          <button class="import-button" id="exportButton" type="button">Export</button>
         </div>
       </div>
       <div class="stats" aria-live="polite">
@@ -782,7 +821,7 @@
         <div class="panel field-list-panel">
           <div class="field-list" id="fieldList"></div>
         </div>
-        <div class="panel add-field-panel">
+        <div class="panel add-field-panel" data-editor-only>
           <div class="paste-coordinate-form">
             <textarea class="coord-paste-box" id="coordCsvText" aria-label="Paste coordinates CSV to add a field" spellcheck="false" placeholder="Paste coordinates CSV here to add a field.&#10;&#10;Nr.,x,y,IE&#10;1,470428.416,557958.594,15573&#10;2,470361.417,557858.697,15573&#10;3,470363.866,557856.637,15573"></textarea>
             <div class="paste-actions">
@@ -845,13 +884,21 @@ Return only the CSV.</textarea>
     const crsDefinitions = {
       [ACTIVE_CRS]: "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=28,-121,-77,0,0,0,0 +units=m +no_defs +type=crs"
     };
-    const fields = [];
+    const READ_ONLY_PORTFOLIO = false;
+    const EMBEDDED_FIELDS = [];
+    const fields = EMBEDDED_FIELDS.map((field) => ({
+      ...field,
+      points: field.points.map((point) => ({ ...point })),
+      visible: field.visible ?? true,
+      removable: false
+    }));
     let map = null;
     let satelliteLayer = null;
     let fieldLayerRoot = null;
 
     const fieldList = document.getElementById("fieldList");
     const csvInput = document.getElementById("csvInput");
+    const exportButton = document.getElementById("exportButton");
     const coordCsvText = document.getElementById("coordCsvText");
     const addCoordsButton = document.getElementById("addCoordsButton");
     const coordPasteStatus = document.getElementById("coordPasteStatus");
@@ -944,11 +991,116 @@ Return only the CSV.</textarea>
       return id;
     }
 
+    function compareFieldIds(left, right) {
+      const leftNumber = Number(left.id);
+      const rightNumber = Number(right.id);
+
+      if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+        return leftNumber - rightNumber;
+      }
+
+      return String(left.id).localeCompare(String(right.id), undefined, {
+        numeric: true,
+        sensitivity: "base"
+      });
+    }
+
+    function sortFieldsById() {
+      fields.sort(compareFieldIds);
+    }
+
+    function fieldDisplayName(field) {
+      return field.nickname ? `${field.id} ${field.nickname}` : field.id;
+    }
+
+    function fieldTooltipHtml(field) {
+      const nicknameHtml = field.nickname
+        ? `<br>${escapeHtml(field.nickname)}`
+        : "";
+
+      return `
+        <strong>${escapeHtml(field.id)}</strong>
+        ${formatNumber(areaSquareMeters(field.points), 2)} m²${nicknameHtml}
+      `;
+    }
+
+    function updateFieldNickname(input) {
+      const index = Number(input.dataset.nicknameIndex);
+      if (!Number.isInteger(index) || !fields[index]) {
+        return;
+      }
+
+      const nickname = input.value.trim();
+      fields[index].nickname = nickname;
+      input.value = nickname;
+    }
+
+    function nicknameFromFilename(filename) {
+      return String(filename || "").replace(/\.[^/.]+$/, "").trim();
+    }
+
+    function exportedFieldData() {
+      return fields.map((field) => ({
+        id: field.id,
+        nickname: field.nickname || "",
+        color: field.color,
+        points: field.points.map((point) => ({
+          id: point.id,
+          x: point.x,
+          y: point.y
+        })),
+        visible: field.visible
+      }));
+    }
+
+    function portfolioFilename() {
+      const visibleIds = visibleFields().map((field) => field.id).join("-");
+      return `cadaster-portfolio${visibleIds ? `-${visibleIds}` : ""}.html`;
+    }
+
+    function createPortfolioHtml() {
+      const doc = document.implementation.createHTMLDocument(document.title || "Cadaster Portfolio");
+      doc.documentElement.innerHTML = document.documentElement.innerHTML;
+
+      doc.querySelectorAll("[data-editor-only]").forEach((element) => element.remove());
+
+      const scripts = doc.querySelectorAll("script");
+      const appScript = scripts[scripts.length - 1];
+      const portfolioFields = JSON.stringify(exportedFieldData(), null, 4)
+        .replace(/</g, "\\u003c")
+        .replace(/>/g, "\\u003e")
+        .replace(/&/g, "\\u0026")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029");
+      appScript.textContent = appScript.textContent
+        .replace("const READ_ONLY_PORTFOLIO = false;", "const READ_ONLY_PORTFOLIO = true;")
+        .replace("const EMBEDDED_FIELDS = [];", `const EMBEDDED_FIELDS = ${portfolioFields};`);
+
+      return `<!DOCTYPE html>\n${doc.documentElement.outerHTML}`;
+    }
+
+    function exportPortfolio() {
+      if (!fields.length) {
+        window.alert("Import or add at least one field before exporting.");
+        return;
+      }
+
+      const blob = new Blob([createPortfolioHtml()], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = portfolioFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
     function addField(fieldId, vertices, options = {}) {
       const id = uniqueFieldId(fieldId);
       fields.push({
         id,
-        name: options.name || `Field ${id}`,
+        nickname: options.nickname || "",
         color: fieldColors[fields.length % fieldColors.length],
         points: vertices,
         visible: options.visible ?? true,
@@ -1049,7 +1201,14 @@ Return only the CSV.</textarea>
         fillOpacity: 0.22,
         opacity: 0.98,
         weight: overlayStyle.perimeterWeight
-      }).addTo(layer);
+      })
+        .bindTooltip(fieldTooltipHtml(field), {
+          className: "field-tooltip",
+          direction: "top",
+          opacity: 1,
+          sticky: true
+        })
+        .addTo(layer);
 
       const center = centroid(field.points);
       if (overlayStyle.showFieldName && Number.isFinite(center.x) && Number.isFinite(center.y)) {
@@ -1068,7 +1227,7 @@ Return only the CSV.</textarea>
       if (overlayStyle.showPointDetails) {
         geoPoints.forEach((point) => {
           const tooltipHtml = `
-            <strong>Field ${escapeHtml(field.id)}, Point ${escapeHtml(point.id)}</strong>
+            <strong>${escapeHtml(fieldDisplayName(field))}, Point ${escapeHtml(point.id)}</strong>
             X: ${formatCadasterCoord(point.x)}<br>
             Y: ${formatCadasterCoord(point.y)}<br>
             Lat: ${point.lat.toFixed(7)}<br>
@@ -1149,7 +1308,7 @@ Return only the CSV.</textarea>
         fieldList.innerHTML = `
           <div class="field-empty" role="status">
             <strong>No fields loaded</strong>
-            Import a CSV or paste coordinates below to add a field.
+            ${READ_ONLY_PORTFOLIO ? "This portfolio does not contain any fields." : "Import a CSV or paste coordinates below to add a field."}
           </div>
         `;
         return;
@@ -1159,10 +1318,15 @@ Return only the CSV.</textarea>
         <div class="field-item ${field.visible ? "is-visible" : ""}" role="button" tabindex="0" aria-pressed="${field.visible}" data-field-index="${index}" title="${field.points.length} points" style="--field-color: ${field.color}">
           <span class="field-swatch" aria-hidden="true"></span>
           <div class="field-meta">
-            <span class="field-name">${escapeHtml(field.name)}</span>
+            <div class="field-title">
+              <span class="field-name">${escapeHtml(field.id)}</span>
+              ${READ_ONLY_PORTFOLIO
+                ? `<span class="field-nickname" title="${escapeHtml(field.nickname)}">${escapeHtml(field.nickname)}</span>`
+                : `<input class="field-nickname" type="text" data-nickname-index="${index}" value="${escapeHtml(field.nickname)}" placeholder="Add nickname" aria-label="Nickname for field ${escapeHtml(field.id)}">`}
+            </div>
             <span class="field-area">${formatNumber(areaSquareMeters(field.points), 2)} m²</span>
           </div>
-          ${field.removable ? `<button class="field-remove" type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(field.name)}">×</button>` : ""}
+          ${field.removable && !READ_ONLY_PORTFOLIO ? `<button class="field-remove" type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(fieldDisplayName(field))}">×</button>` : ""}
         </div>
       `).join("");
     }
@@ -1270,17 +1434,28 @@ Return only the CSV.</textarea>
       });
     }
 
-    function importFields(importedFields) {
-      importedFields.forEach((field) => addField(field.id, field.points));
+    function importFields(importedFields, options = {}) {
+      importedFields.forEach((field) => addField(field.id, field.points, {
+        nickname: field.nickname || options.nickname || ""
+      }));
+      sortFieldsById();
       render();
     }
 
     function setCoordPasteStatus(message, state = "") {
+      if (!coordPasteStatus) {
+        return;
+      }
+
       coordPasteStatus.textContent = message;
       coordPasteStatus.dataset.state = state;
     }
 
     function validateCoordPaste() {
+      if (!coordCsvText || !addCoordsButton) {
+        return;
+      }
+
       const csvText = coordCsvText.value.trim();
       parsedPasteFields = [];
       addCoordsButton.disabled = true;
@@ -1312,6 +1487,10 @@ Return only the CSV.</textarea>
         return;
       }
 
+      if (event.target.closest("[data-nickname-index]")) {
+        return;
+      }
+
       const fieldItem = event.target.closest("[data-field-index]");
       if (!fieldItem || !fieldList.contains(fieldItem)) {
         return;
@@ -1329,7 +1508,27 @@ Return only the CSV.</textarea>
       }
     });
 
+    fieldList.addEventListener("input", (event) => {
+      const nicknameInput = event.target.closest("[data-nickname-index]");
+      if (!nicknameInput || !fieldList.contains(nicknameInput)) {
+        return;
+      }
+
+      updateFieldNickname(nicknameInput);
+    });
+
     fieldList.addEventListener("keydown", (event) => {
+      const nicknameInput = event.target.closest("[data-nickname-index]");
+      if (nicknameInput) {
+        event.stopPropagation();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          updateFieldNickname(nicknameInput);
+          nicknameInput.blur();
+        }
+        return;
+      }
+
       if ((event.key !== "Enter" && event.key !== " ") || event.target.closest("button")) {
         return;
       }
@@ -1352,37 +1551,47 @@ Return only the CSV.</textarea>
       }
     });
 
-    csvInput.addEventListener("change", async (event) => {
-      const file = event.target.files[0];
-      if (!file) {
-        return;
-      }
+    if (csvInput) {
+      csvInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          return;
+        }
 
-      try {
-        const importedFields = parseCsvFields(await file.text());
-        importFields(importedFields);
-        csvInput.value = "";
-      } catch (error) {
-        window.alert(error.message);
-      }
-    });
+        try {
+          const importedFields = parseCsvFields(await file.text());
+          importFields(importedFields, { nickname: nicknameFromFilename(file.name) });
+          csvInput.value = "";
+        } catch (error) {
+          window.alert(error.message);
+        }
+      });
+    }
 
-    coordCsvText.addEventListener("input", validateCoordPaste);
+    if (exportButton) {
+      exportButton.addEventListener("click", exportPortfolio);
+    }
 
-    addCoordsButton.addEventListener("click", () => {
-      try {
-        const importedFields = parsedPasteFields.length ? parsedPasteFields : parseCsvFields(coordCsvText.value.trim());
-        importFields(importedFields);
-        coordCsvText.value = "";
-        parsedPasteFields = [];
-        addCoordsButton.disabled = true;
-        setCoordPasteStatus(`Added ${importedFields.length} field${importedFields.length === 1 ? "" : "s"}.`);
-      } catch (error) {
-        setCoordPasteStatus(error.message, "error");
-        parsedPasteFields = [];
-        addCoordsButton.disabled = true;
-      }
-    });
+    if (coordCsvText) {
+      coordCsvText.addEventListener("input", validateCoordPaste);
+    }
+
+    if (addCoordsButton) {
+      addCoordsButton.addEventListener("click", () => {
+        try {
+          const importedFields = parsedPasteFields.length ? parsedPasteFields : parseCsvFields(coordCsvText.value.trim());
+          importFields(importedFields);
+          coordCsvText.value = "";
+          parsedPasteFields = [];
+          addCoordsButton.disabled = true;
+          setCoordPasteStatus(`Added ${importedFields.length} field${importedFields.length === 1 ? "" : "s"}.`);
+        } catch (error) {
+          setCoordPasteStatus(error.message, "error");
+          parsedPasteFields = [];
+          addCoordsButton.disabled = true;
+        }
+      });
+    }
 
     function showCopyPromptResult(message) {
       copyPrompt.textContent = message;
@@ -1392,21 +1601,23 @@ Return only the CSV.</textarea>
       }, 1600);
     }
 
-    copyPrompt.addEventListener("click", async () => {
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(csvPrompt.value);
-        } else {
-          csvPrompt.select();
-          document.execCommand("copy");
-          csvPrompt.setSelectionRange(0, 0);
-        }
+    if (copyPrompt && csvPrompt) {
+      copyPrompt.addEventListener("click", async () => {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(csvPrompt.value);
+          } else {
+            csvPrompt.select();
+            document.execCommand("copy");
+            csvPrompt.setSelectionRange(0, 0);
+          }
 
-        showCopyPromptResult("Prompt Copied");
-      } catch (error) {
-        showCopyPromptResult("Copy Failed");
-      }
-    });
+          showCopyPromptResult("Prompt Copied");
+        } catch (error) {
+          showCopyPromptResult("Copy Failed");
+        }
+      });
+    }
 
     satelliteToggle.addEventListener("change", () => {
       setSatelliteVisible(satelliteToggle.checked);
