@@ -300,7 +300,8 @@
     }
 
     .leaflet-tooltip.point-tooltip,
-    .leaflet-tooltip.field-tooltip {
+    .leaflet-tooltip.field-tooltip,
+    .leaflet-tooltip.segment-tooltip {
       min-width: 148px;
       border: 1px solid rgb(255 255 255 / 0.72);
       border-radius: 6px;
@@ -314,7 +315,8 @@
     }
 
     .leaflet-tooltip.point-tooltip strong,
-    .leaflet-tooltip.field-tooltip strong {
+    .leaflet-tooltip.field-tooltip strong,
+    .leaflet-tooltip.segment-tooltip strong {
       display: block;
       margin-bottom: 3px;
       color: #ffffff;
@@ -322,7 +324,8 @@
     }
 
     .leaflet-tooltip-top.point-tooltip::before,
-    .leaflet-tooltip-top.field-tooltip::before {
+    .leaflet-tooltip-top.field-tooltip::before,
+    .leaflet-tooltip-top.segment-tooltip::before {
       border-top-color: rgb(2 6 23 / 0.94);
     }
 
@@ -931,6 +934,13 @@ Return only the CSV.</textarea>
       }).format(value);
     }
 
+    function formatLength(value) {
+      return new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(value);
+    }
+
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
@@ -955,6 +965,10 @@ Return only the CSV.</textarea>
         const next = vertices[(index + 1) % vertices.length];
         return total + Math.hypot(next.x - point.x, next.y - point.y);
       }, 0);
+    }
+
+    function segmentLengthMeters(start, end) {
+      return Math.hypot(end.x - start.x, end.y - start.y);
     }
 
     function centroid(vertices) {
@@ -1233,6 +1247,30 @@ Return only the CSV.</textarea>
       }
 
       if (overlayStyle.showPointDetails) {
+        geoPoints.forEach((point, index) => {
+          const next = geoPoints[(index + 1) % geoPoints.length];
+          const tooltipHtml = `
+            <strong>${escapeHtml(fieldDisplayName(field))}, Segment ${escapeHtml(point.id)} to ${escapeHtml(next.id)}</strong>
+            Length: ${formatLength(segmentLengthMeters(point, next))} m<br>
+            Start point: ${escapeHtml(point.id)}<br>
+            End point: ${escapeHtml(next.id)}
+          `;
+
+          L.polyline([[point.lat, point.lng], [next.lat, next.lng]], {
+            color: field.color,
+            opacity: 0.01,
+            weight: Math.max(overlayStyle.perimeterWeight + 12, 14),
+            interactive: true
+          })
+            .bindTooltip(tooltipHtml, {
+              className: "segment-tooltip",
+              direction: "top",
+              opacity: 1,
+              sticky: true
+            })
+            .addTo(layer);
+        });
+
         geoPoints.forEach((point) => {
           const tooltipHtml = `
             <strong>${escapeHtml(fieldDisplayName(field))}, Point ${escapeHtml(point.id)}</strong>
