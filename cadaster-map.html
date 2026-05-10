@@ -918,6 +918,12 @@ Return only the CSV.</textarea>
       }).format(value);
     }
 
+    function formatArea(value) {
+      return new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 0
+      }).format(value);
+    }
+
     function formatCadasterCoord(value) {
       return new Intl.NumberFormat("ro-RO", {
         minimumFractionDigits: 3,
@@ -1020,7 +1026,7 @@ Return only the CSV.</textarea>
 
       return `
         <strong>${escapeHtml(field.id)}</strong>
-        ${formatNumber(areaSquareMeters(field.points), 2)} m²${nicknameHtml}
+        ${formatArea(areaSquareMeters(field.points))} m²${nicknameHtml}
       `;
     }
 
@@ -1324,7 +1330,7 @@ Return only the CSV.</textarea>
                 ? `<span class="field-nickname" title="${escapeHtml(field.nickname)}">${escapeHtml(field.nickname)}</span>`
                 : `<input class="field-nickname" type="text" data-nickname-index="${index}" value="${escapeHtml(field.nickname)}" placeholder="Add nickname" aria-label="Nickname for field ${escapeHtml(field.id)}">`}
             </div>
-            <span class="field-area">${formatNumber(areaSquareMeters(field.points), 2)} m²</span>
+            <span class="field-area">${formatArea(areaSquareMeters(field.points))} m²</span>
           </div>
           ${field.removable && !READ_ONLY_PORTFOLIO ? `<button class="field-remove" type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(fieldDisplayName(field))}">×</button>` : ""}
         </div>
@@ -1335,7 +1341,7 @@ Return only the CSV.</textarea>
       const selectedFields = visibleFields();
       const area = selectedFields.reduce((total, field) => total + areaSquareMeters(field.points), 0);
 
-      document.getElementById("areaValue").textContent = selectedFields.length ? `${formatNumber(area)} m²` : "0 m²";
+      document.getElementById("areaValue").textContent = selectedFields.length ? `${formatArea(area)} m²` : "0 m²";
       document.getElementById("fieldCount").textContent = String(selectedFields.length);
     }
 
