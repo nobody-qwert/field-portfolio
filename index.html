@@ -735,17 +735,25 @@
     }
 
     @media (max-width: 860px) {
+      body {
+        min-height: 100dvh;
+        overflow: hidden;
+      }
+
       main {
         display: flex;
         flex-direction: column;
-        height: auto;
-        min-height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
       }
 
       header {
         display: flex;
         align-items: flex-start;
         flex-direction: column;
+        flex: 0 0 auto;
+        padding: 10px 12px;
       }
 
       .title-tools {
@@ -761,20 +769,43 @@
       }
 
       .layout {
-        display: block;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .map-wrap {
+        flex: 1 1 auto;
+        min-height: 200px;
       }
 
       aside {
-        height: auto;
+        flex: 0 0 auto;
+        max-height: min(38dvh, 280px);
         min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
         border-left: 0;
         border-top: 1px solid var(--line);
       }
 
       #map {
-        flex: none;
-        height: 62vh;
-        min-height: 420px;
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+      }
+
+      .field-list {
+        max-height: calc((3.25rem * 2) + 6px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .field-item {
+        min-height: 3.25rem;
       }
 
       .stats {
@@ -798,15 +829,15 @@
       </div>
       <div class="stats" aria-live="polite">
         <div class="stat">
-          <span>Area</span>
+          <span>Total Area</span>
           <strong id="areaValue">0 m²</strong>
         </div>
         <div class="stat">
-          <span>Visible Fields</span>
+          <span>Fields</span>
           <strong id="fieldCount">0</strong>
         </div>
       </div>
-      <label class="setting-row header-setting header-satellite">
+      <label class="setting-row header-setting header-satellite" data-editor-only>
         <span>Satellite view</span>
         <span class="switch">
           <input id="satelliteToggle" type="checkbox" role="switch" aria-checked="true" checked>
@@ -1186,10 +1217,11 @@ Return only the CSV.</textarea>
           attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
         }
       );
-      setSatelliteVisible(satelliteToggle.checked);
+      setSatelliteVisible(READ_ONLY_PORTFOLIO || !satelliteToggle ? true : satelliteToggle.checked);
 
       fieldLayerRoot = L.layerGroup().addTo(map);
       map.on("zoomend", () => redrawMap());
+      window.addEventListener("resize", () => map.invalidateSize());
       return true;
     }
 
@@ -1198,7 +1230,9 @@ Return only the CSV.</textarea>
         return;
       }
 
-      satelliteToggle.setAttribute("aria-checked", String(visible));
+      if (satelliteToggle) {
+        satelliteToggle.setAttribute("aria-checked", String(visible));
+      }
 
       if (visible) {
         if (!map.hasLayer(satelliteLayer)) {
@@ -1250,7 +1284,7 @@ Return only the CSV.</textarea>
         geoPoints.forEach((point, index) => {
           const next = geoPoints[(index + 1) % geoPoints.length];
           const tooltipHtml = `
-            <strong>${escapeHtml(fieldDisplayName(field))}, Segment ${escapeHtml(point.id)} to ${escapeHtml(next.id)}</strong>
+            <strong>${escapeHtml(fieldDisplayName(field))}</strong>
             Length: ${formatLength(segmentLengthMeters(point, next))} m<br>
             Start point: ${escapeHtml(point.id)}<br>
             End point: ${escapeHtml(next.id)}
@@ -1677,9 +1711,11 @@ Return only the CSV.</textarea>
       });
     }
 
-    satelliteToggle.addEventListener("change", () => {
-      setSatelliteVisible(satelliteToggle.checked);
-    });
+    if (satelliteToggle) {
+      satelliteToggle.addEventListener("change", () => {
+        setSatelliteVisible(satelliteToggle.checked);
+      });
+    }
 
     if (setupMap()) {
       render();
