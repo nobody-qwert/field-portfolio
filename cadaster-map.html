@@ -788,7 +788,7 @@
         <div class="header-controls" data-editor-only>
           <label class="import-button" title="Import coordinates from CSV">
             <span>Import</span>
-            <input class="file-input" id="csvInput" type="file" accept=".csv,text/csv">
+            <input class="file-input" id="csvInput" type="file" accept=".csv,text/csv" multiple>
           </label>
           <button class="import-button" id="exportButton" type="button">Export</button>
         </div>
@@ -1553,17 +1553,29 @@ Return only the CSV.</textarea>
 
     if (csvInput) {
       csvInput.addEventListener("change", async (event) => {
-        const file = event.target.files[0];
-        if (!file) {
+        const files = [...event.target.files];
+        if (!files.length) {
           return;
         }
 
         try {
-          const importedFields = parseCsvFields(await file.text());
-          importFields(importedFields, { nickname: nicknameFromFilename(file.name) });
-          csvInput.value = "";
+          const importedFieldsByFile = await Promise.all(files.map(async (file) => {
+            try {
+              const nickname = nicknameFromFilename(file.name);
+              return parseCsvFields(await file.text()).map((field) => ({
+                ...field,
+                nickname: field.nickname || nickname
+              }));
+            } catch (error) {
+              throw new Error(`${file.name}: ${error.message}`);
+            }
+          }));
+
+          importFields(importedFieldsByFile.flat());
         } catch (error) {
           window.alert(error.message);
+        } finally {
+          csvInput.value = "";
         }
       });
     }
