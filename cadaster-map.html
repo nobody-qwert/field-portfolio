@@ -1045,7 +1045,9 @@ Return only the CSV.</textarea>
       return String(filename || "").replace(/\.[^/.]+$/, "").trim();
     }
 
-    function exportedFieldData() {
+    function exportedFieldData(options = {}) {
+      const visible = options.visible ?? false;
+
       return fields.map((field) => ({
         id: field.id,
         nickname: field.nickname || "",
@@ -1055,7 +1057,7 @@ Return only the CSV.</textarea>
           x: point.x,
           y: point.y
         })),
-        visible: field.visible
+        visible
       }));
     }
 
