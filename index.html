@@ -1060,9 +1060,9 @@ Return only the CSV.</textarea>
     }
 
     function exportedFieldData(options = {}) {
-      const visible = options.visible ?? false;
+      const selectedIndex = options.selectedIndex ?? 0;
 
-      return fields.map((field) => ({
+      return fields.map((field, index) => ({
         id: field.id,
         nickname: field.nickname || "",
         color: field.color,
@@ -1071,7 +1071,7 @@ Return only the CSV.</textarea>
           x: point.x,
           y: point.y
         })),
-        visible
+        visible: index === selectedIndex
       }));
     }
 
